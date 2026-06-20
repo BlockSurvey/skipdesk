@@ -65,3 +65,28 @@ export function parseHhMm(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
   return (h ?? 0) * 60 + (m ?? 0)
 }
+
+/**
+ * Spoken-date formatting. The voice agent must NEVER compute weekdays or convert
+ * timezones itself (LLMs drift — e.g. calling the 24th "Monday" when the 22nd is).
+ * So we render every date the agent reads aloud here, in the business's IANA tz,
+ * and the agent just speaks the string. This is the heart of the tz boundary:
+ * the business timezone is the single authoritative clock.
+ */
+const localFmt = (tz: string, opts: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat('en-US', { timeZone: tz, ...opts })
+
+/** "Monday, June 22, 2026" — weekday included so the agent never guesses it. */
+export function formatLocalDate(at: Date, tz: string): string {
+  return localFmt(tz, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(at)
+}
+
+/** "9:00 AM" in the business's local time. */
+export function formatLocalTime(at: Date, tz: string): string {
+  return localFmt(tz, { hour: 'numeric', minute: '2-digit', hour12: true }).format(at)
+}
+
+/** "Monday, June 22, 2026 at 9:00 AM" — the canonical read-back for a slot/booking. */
+export function formatLocalDateTime(at: Date, tz: string): string {
+  return `${formatLocalDate(at, tz)} at ${formatLocalTime(at, tz)}`
+}

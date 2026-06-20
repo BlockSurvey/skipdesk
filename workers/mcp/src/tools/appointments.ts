@@ -13,17 +13,25 @@ import {
   findConflict,
   getBusinessOrThrow,
 } from '../lib/availability'
+import { formatLocalDate, formatLocalDateTime } from '../lib/time'
 
-const slimAppt = (a: typeof appointments.$inferSelect) => ({
-  id: a.id,
-  customer_name: a.customerName,
-  customer_phone: a.customerPhone,
-  service: a.service,
-  starts_at: a.startsAt,
-  ends_at: a.endsAt,
-  status: a.status,
-  location: a.location,
-})
+const slimAppt = (a: typeof appointments.$inferSelect) => {
+  const tz = a.timezone ?? 'UTC'
+  return {
+    id: a.id,
+    customer_name: a.customerName,
+    customer_phone: a.customerPhone,
+    service: a.service,
+    starts_at: a.startsAt,
+    ends_at: a.endsAt,
+    // Spoken read-back in the appointment's own timezone — the agent says this verbatim
+    // instead of converting the UTC `starts_at` itself.
+    when: formatLocalDateTime(new Date(a.startsAt), tz),
+    timezone: tz,
+    status: a.status,
+    location: a.location,
+  }
+}
 
 /** Resolve [start,end] from starts_at + (ends_at | duration_minutes | default 30). */
 function resolveWindow(startsAt: string, endsAt?: string, durationMinutes?: number) {
@@ -58,11 +66,18 @@ export function registerAppointmentTools(def: Registrar): void {
         to: a.to ? new Date(toIsoUtc(a.to)) : undefined,
         durationMinutes: a.duration_minutes,
       })
+      const tz = result.timezone
       return ok({
-        timezone: result.timezone,
+        timezone: tz,
+        // Ground the agent in the business's local "today" so it resolves "next Monday"
+        // correctly instead of guessing — and offer each slot as a ready-to-speak label.
+        today: formatLocalDate(new Date(), tz),
         duration_minutes: result.durationMinutes,
         available: result.slots.length > 0,
-        slots: result.slots,
+        slots: result.slots.map((s) => ({
+          ...s,
+          label: formatLocalDateTime(new Date(s.starts_at), tz),
+        })),
       })
     },
   )

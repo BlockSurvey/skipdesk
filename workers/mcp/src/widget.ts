@@ -19,6 +19,7 @@ import { createDb } from '../../../db/client'
 import { businessFaqs, businessHours, businesses, calls, leads, phoneNumbers } from '../../../db/schema'
 import type { Business } from '../../../db/schema'
 import { businessCountryCode, resolveContact } from './lib/customer'
+import { formatLocalDate, formatLocalDateTime, formatLocalTime } from './lib/time'
 import { normalizePhone, toIsoUtc } from './lib/validate'
 
 export type WidgetEnv = {
@@ -76,14 +77,27 @@ async function buildVariableValues(db: Db, biz: Business): Promise<Record<string
     db.query.businessFaqs.findMany({ where: and(eq(businessFaqs.businessId, biz.id), eq(businessFaqs.isActive, true)) }),
   ])
   const agentName = biz.agentName?.trim() || 'Sam'
-  const greeting = biz.greeting?.trim() || `Thanks for contacting ${biz.name} — this is ${agentName}. How can I help you today?`
+  // Greeting declares the business name AND that this is its assistant, up front,
+  // so the caller knows who they reached and that they're talking to an AI agent.
+  const greeting =
+    biz.greeting?.trim() ||
+    `Hi, you've reached ${biz.name}. This is ${agentName}, the ${biz.name} virtual assistant. How can I help you today?`
+
+  // Ground the agent in "now" IN THE BUSINESS TIMEZONE. Without this the LLM guesses
+  // today's date and drifts on weekdays (the off-by-2-days bug). Computed server-side
+  // at config fetch; the call starts seconds later so this is fresh to the minute.
+  const now = new Date()
+  const tz = biz.timezone
   return {
     BUSINESS_NAME: biz.name,
     AGENT_NAME: agentName,
     GREETING: greeting,
     BUSINESS_HOURS: hoursSummary(hours),
     FAQ_SUMMARY: faqSummary(faqs),
-    TIMEZONE: biz.timezone,
+    TIMEZONE: tz,
+    CURRENT_DATE: formatLocalDate(now, tz), // "Monday, June 22, 2026"
+    CURRENT_TIME: formatLocalTime(now, tz), // "2:15 PM"
+    CURRENT_DATETIME: formatLocalDateTime(now, tz),
     businessId: biz.id,
   }
 }
