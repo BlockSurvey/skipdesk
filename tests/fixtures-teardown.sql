@@ -11,4 +11,14 @@ DELETE FROM calls        WHERE provider_call_id LIKE 'adv_%'
 DELETE FROM api_keys           WHERE business_id='biz_test2';
 DELETE FROM business_hours     WHERE business_id='biz_test2';
 DELETE FROM escalation_contacts WHERE business_id='biz_test2';
+
+-- Knowledge-base e2e leftovers: chunks + document rows for KB/Auth test tenants.
+-- (R2 blobs are removed by the test's own DELETE step; this purges any strays.)
+DELETE FROM kb_chunks WHERE business_id IN (
+  SELECT id FROM businesses WHERE id='biz_test2' OR name LIKE 'KB Test %' OR name LIKE 'Auth Test %'
+);
+DELETE FROM documents WHERE business_id IN (
+  SELECT id FROM businesses WHERE id='biz_test2' OR name LIKE 'KB Test %' OR name LIKE 'Auth Test %'
+);
+
 DELETE FROM businesses          WHERE id='biz_test2';

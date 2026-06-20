@@ -25,6 +25,7 @@
     "test:e2e:advanced": "node tests/e2e-advanced.mjs",
     "test:e2e:identity": "node tests/e2e-identity.mjs",
     "test:e2e:auth": "node tests/e2e-auth.mjs",
+    "test:e2e:knowledge": "node tests/e2e-knowledge.mjs",
     "test:register": "node tests/register.mjs"
   },
   "dependencies": {

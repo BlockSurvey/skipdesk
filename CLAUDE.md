@@ -2,9 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project status: DB + MCP server + dashboard + accounts/auth all built
+## Project status: DB + MCP server + dashboard + accounts/auth + knowledge-base RAG all built
 
-Done: **(1)** Cloudflare D1 schema (`db/`); **(2)** the **MCP server** (`workers/mcp/`) — 15 voice-agent tools + `/register` + email/password auth + onboarding + per-owner dashboard API, deployed; **(3)** the **Next.js product** (`app/`) — a marketing landing page, **signup/login (email+password, no verification)**, a 3-step **onboarding wizard**, a session-gated **/dashboard** (the owner's own business: calendar, callers+summaries, leads, KPIs), and a **/settings** page (profile, hours, FAQs, escalation, API-key rotation).
+Done: **(1)** Cloudflare D1 schema (`db/`); **(2)** the **MCP server** (`workers/mcp/`) — 16 voice-agent tools + `/register` + email/password auth + onboarding + per-owner dashboard API + **knowledge-base document upload/RAG**, deployed; **(3)** the **Next.js product** (`app/`) — a marketing landing page, **signup/login (email+password, no verification)**, a 3-step **onboarding wizard**, a session-gated **/dashboard** (the owner's own business: calendar, callers+summaries, leads, KPIs), a **/knowledge** page (document upload + RAG search), and a **/settings** page (profile, hours, FAQs, escalation, API-key rotation).
+
+**Knowledge base (document RAG) — see `docs/superpowers/specs/2026-06-20-knowledge-base-document-rag-design.md`.** Owners upload PDF/DOCX/TXT/MD on **/knowledge**; the worker stores the blob in **Cloudflare R2** (`DOCS` binding, bucket `skip-desk-docs`, key `documents/{business_id}/{id}/{file}`), then inline (via `ctx.waitUntil`) converts it with **Workers AI** (`AI` binding) `toMarkdown`, chunks it, embeds with `@cf/baai/bge-base-en-v1.5`, and stores the vectors **in D1** (`kb_chunks.embedding` JSON — vectors stay in D1; R2 = blobs, AI = compute, the one documented "D1-only" deviation). The **`search_knowledge_base`** MCP tool (scope `knowledge:read`) embeds the query and brute-force cosine-ranks the tenant's chunks. Tables: `documents` (lifecycle pending/processing/ready/failed) + `kb_chunks`. Upgrade paths (no migration): vectors → Vectorize, inline ingest → Queue.
 
 **Accounts/auth model — see `docs/superpowers/specs/2026-06-20-accounts-onboarding-auth-design.md`.** Single **owner per business**. Passwords are **PBKDF2-HMAC-SHA256 hashed** (never plaintext). Sessions are **stateless ES256 JWTs** (14-day TTL): the worker **signs** with a private key (`JWT_PRIVATE_JWK` worker secret), and anyone **verifies** with the public key (committed in `lib/jwt-public-key.ts`) — so the UI verifies a session locally with no round-trip. The Next app proxies auth through its own Route Handlers and stores the JWT in an **httpOnly `sd_session` cookie** (never exposed to browser JS); `middleware.ts` does a coarse edge gate while `getSession()` does the authoritative signature verification. Logout is stateless (the UI clears the cookie; tokens aren't server-revoked). The **voice-agent/MCP path stays API-key based and unchanged**; auth only gates the human dashboard.
 
@@ -12,7 +14,7 @@ Done: **(1)** Cloudflare D1 schema (`db/`); **(2)** the **MCP server** (`workers
 - MCP endpoint (Streamable HTTP, for Claude/Vapi): `…/mcp`
 - Register a business (machine, returns key once): `POST …/register`
 - Auth (human owners): `POST …/auth/signup`, `…/auth/login`, `…/auth/logout`, `GET …/auth/me`
-- Onboarding + owner API (session-gated): `POST …/onboarding`, `GET …/api/me/dashboard`, `…/api/me/config`, `PATCH …/api/me/business`, `PUT …/api/me/{hours,faqs,escalation}`, `POST …/api/me/key/rotate`
+- Onboarding + owner API (session-gated): `POST …/onboarding`, `GET …/api/me/dashboard`, `…/api/me/config`, `PATCH …/api/me/business`, `PUT …/api/me/{hours,faqs,escalation}`, `POST …/api/me/key/rotate`, `POST/GET …/api/me/documents`, `GET/DELETE …/api/me/documents/{id}`, `POST …/api/me/knowledge/search`
 
 ## Dashboard / product (`app/` — Next.js 14 + Tailwind)
 
@@ -31,7 +33,7 @@ Authoritative documents:
 ## Database (`db/`) — commands & layout
 
 Single Drizzle `sqlite-core` schema is the source of truth; D1 is SQLite, so dev and prod are the same dialect (no Postgres).
-- `db/schema.ts` — 10 tables + relations + inferred `$inferSelect/$inferInsert` types. **Import these types in the data layer/API/MCP; don't redefine row shapes.**
+- `db/schema.ts` — 12 tables + relations + inferred `$inferSelect/$inferInsert` types (incl. `documents` + `kb_chunks` for the knowledge base). **Import these types in the data layer/API/MCP; don't redefine row shapes.**
 - `db/enums.ts` — enum value arrays + TS unions; reused to build the schema's CHECK constraints, so DB/types/validation can't drift.
 - `db/client.ts` — `createDb(env.DB)` → Drizzle D1 client with the relational query API.
 - `db/migrations/` — generated SQL (tracked in git). `db/seed.sql` — demo tenant.
@@ -72,7 +74,7 @@ These are not style preferences — violating them breaks multi-tenancy or query
 
 Build in order; everything binds to the database.
 1. ✅ **Database (D1)** — `db/` schema, migration, seed, live `skip-desk-db`. Done.
-2. ✅ **MCP server** (`workers/mcp/`) — 15 tenant-scoped tools + `/register` onboarding, deployed. Done.
+2. ✅ **MCP server** (`workers/mcp/`) — 16 tenant-scoped tools (incl. `search_knowledge_base`) + `/register` onboarding + document RAG, deployed. Done.
 3. **Dashboard** (next) — registration page + 3-pane UI (calls · appointments · calendar). Reuses `db/` + the same query patterns.
 4. **Voice platform wiring** — point the Vapi/Retell assistant's MCP/tools at the live `/mcp` URL with the business's `Bearer` key (see the build guide).
 
@@ -86,7 +88,7 @@ Cloudflare Worker over D1, exposing the voice-agent tool surface as MCP tools. O
 - `src/register.ts` — `POST /register` self-serve onboarding (machine): creates a business (UUID), default Mon–Fri 09:00–18:00 hours, optional escalation contact, and one API key (raw key returned ONCE). Exports `slugify` + `newApiKey` (reused by `account.ts`).
 - **Dashboard auth (human owners):** `src/lib/password.ts` (PBKDF2 hash/verify), `src/lib/jwt.ts` (ES256 `signSession`/`verifyToken` using the `JWT_PRIVATE_JWK` secret; public key derived from it), `src/lib/session.ts` (`issueToken`, `resolveAuth` = verify JWT + load user/business from D1, `sessionToken` cookie/Bearer parsing), `src/authRoutes.ts` (`/auth/signup|login|logout|me`), `src/account.ts` (`/onboarding` re-issues a fresh token + session-gated `/api/me/*`: dashboard, config, business PATCH, hours/faqs/escalation PUT, key rotate). Every `/api/me/*` route resolves `business_id` from the session's user — never from the URL/body. The `sessions` D1 table is currently unused (reserved for a future refresh-token/denylist; auth is stateless JWT). Set the signing key once with `echo "$JWT_PRIVATE_JWK" | npx wrangler secret put JWT_PRIVATE_JWK -c workers/mcp/wrangler.toml`.
 - `src/context.ts` — `makeRegistrar()` wraps every tool with scope-checking + error handling; `DEMO_BUSINESS_ID` (mirrors `db/seed.sql`) is the no-auth fallback tenant for testing.
-- `src/tools/*` — info, leads (incl. `lookup_caller`), appointments, escalation, calls. `src/lib/` — `validate` (phone→E.164, ISO-UTC, enums), `availability` (open-hours minus bookings), `time` (tz).
+- `src/tools/*` — info, leads (incl. `lookup_caller`), appointments, escalation, calls, knowledge (`search_knowledge_base`). `src/lib/` — `validate` (phone→E.164, ISO-UTC, enums), `availability` (open-hours minus bookings), `time` (tz), `knowledge` (chunk/embed/cosine/search). `src/documents.ts` — session-gated upload/list/delete + R2 + inline `ctx.waitUntil` ingestion. Tool ctx carries `ai` (Workers AI) alongside `db`.
 
 **Tenancy & clean data:** every tool resolves `business_id` from the authenticated key (never from args) and validates/normalizes inputs before writing — so a business's data is isolated and only clean rows land. No-auth requests fall back to the demo tenant (testing only); real businesses must send their key.
 
@@ -99,6 +101,7 @@ End-to-end against the **deployed** MCP server, driving real caller workflows ov
 - `npm run test:setup` → `npm run test:e2e:advanced` → `npm run test:teardown` — advanced suite (40 assertions; setup seeds a 2nd tenant `biz_test2`, teardown removes all test rows).
 - `npm run test:e2e:identity` — caller identity / dedup edge cases (23 assertions).
 - `npm run test:e2e:auth` — accounts/auth/onboarding: signup, login, onboarding, tenant isolation, key rotation, logout, **JWT shape + ES256 + 14-day TTL** (30 assertions; uses `authtest+<ts>@example.test` accounts — clean up by `email LIKE 'authtest+%@example.test'` / `name LIKE 'Auth Test %'`).
+- `npm run test:e2e:knowledge` — knowledge-base RAG: upload → poll to `ready` → `search_knowledge_base` retrieves the fact with source citation → tenant isolation → dashboard test-search → delete cleanup (19 assertions; uses `kbtest+<ts>@example.test` accounts / `KB Test %` businesses — purged by `fixtures-teardown.sql`).
 - `npm run test:register` — machine onboarding (14 assertions).
 - Test rows use `+1999000xxxx` phones / `test_call_*`/`adv_*` ids; `tests/fixtures-teardown.sql` cleans everything. Cloudflare creds must be exported (or `wrangler login`).
 
