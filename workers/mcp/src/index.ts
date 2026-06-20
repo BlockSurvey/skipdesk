@@ -23,6 +23,7 @@ import { handleAuth } from './authRoutes'
 import { handleAccountApi, handleOnboarding } from './account'
 import { handleDocumentsApi } from './documents'
 import { handleVapiWebhook, handleWidgetConfig } from './widget'
+import { resolveVapiCallPrincipal } from './vapiTenant'
 
 export type Env = {
   DB: D1Database
@@ -41,6 +42,10 @@ export type Env = {
   VAPI_WEBHOOK_SECRET?: string
   /** Shared inbound phone number (E.164) shown until each business gets its own. */
   VAPI_PHONE_NUMBER?: string
+  /** Vapi private API key — lets the worker look a call up to find its tenant (mid-call MCP). */
+  VAPI_PRIVATE_KEY?: string
+  /** Static shared secret Vapi's MCP tool sends (X-Skipdesk-Secret) to gate the call-id tenant path. */
+  MCP_TOOL_SECRET?: string
 }
 
 type Props = { businessId?: string; scopes?: ApiScope[] }
@@ -116,6 +121,15 @@ export default {
       principal = await resolveApiKey(createDb(env.DB), token)
       if (!principal) {
         return Response.json({ error: 'invalid or revoked API key' }, { status: 401 })
+      }
+    } else {
+      // Mid-call Vapi MCP tool path: no Bearer key, but Vapi injects X-Call-Id.
+      // If the static shared secret matches, look the call up to find its tenant.
+      const callId = request.headers.get('x-call-id')
+      const toolSecret = request.headers.get('x-skipdesk-secret')
+      const gateOk = !env.MCP_TOOL_SECRET || toolSecret === env.MCP_TOOL_SECRET
+      if (callId && gateOk) {
+        principal = await resolveVapiCallPrincipal(callId, env.VAPI_PRIVATE_KEY, Date.now())
       }
     }
 
