@@ -51,14 +51,15 @@ export default function Landing() {
           />
           <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-20 text-center">
             <span className="pill mx-auto bg-panel2 text-muted">AI front desk for small business</span>
-            <h1 className="mx-auto mt-5 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight text-ink md:text-6xl">
-              Enterprise-grade customer experience,{' '}
-              <span className="text-amber">on every call.</span>
+            <h1 className="mx-auto mt-5 max-w-4xl text-4xl font-semibold leading-[1.08] tracking-tight text-ink md:text-6xl">
+              <span className="block">Answer Every Call.</span>
+              <span className="block text-amber md:whitespace-nowrap">Capture Every Opportunity.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-              Skip Desk gives small businesses an AI receptionist that makes sure every customer is{' '}
-              <span className="font-medium text-ink">heard, assisted, and guided</span> instantly —
-              turning conversations into booked appointments and revenue.
+              SkipDesk is an AI-powered front desk agent that ensures{' '}
+              <span className="font-medium text-ink">no customer call goes unanswered</span>. It understands
+              customer intent, answers questions, books appointments, and helps businesses convert every
+              conversation into revenue.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link href="/signup" className="btn btn-primary px-5 py-3 text-[15px]">Get started free</Link>
