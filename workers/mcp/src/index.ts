@@ -27,6 +27,10 @@ export type Env = {
   MCP_OBJECT: DurableObjectNamespace
   /** ES256 private signing key (JWK JSON) for dashboard session JWTs. */
   JWT_PRIVATE_JWK: string
+  /** R2 bucket for raw uploaded knowledge-base document blobs. */
+  DOCS: R2Bucket
+  /** Workers AI binding — toMarkdown conversion + bge text embeddings. */
+  AI: Ai
 }
 
 type Props = { businessId?: string; scopes?: ApiScope[] }

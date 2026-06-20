@@ -9,6 +9,15 @@ binding = "DB"
 database_name = "skip-desk-db"
 database_id = "a499fc75-63a9-40e7-93c2-45a08b4d9299"
 
+# R2 — raw uploaded knowledge-base document blobs (namespaced by business_id in the key).
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "skip-desk-docs"
+
+# Workers AI — document→markdown conversion (toMarkdown) + text embeddings (bge).
+[ai]
+binding = "AI"
+
 # Durable Object that backs the McpAgent session (required by the Agents SDK).
 [[durable_objects.bindings]]
 name = "MCP_OBJECT"
