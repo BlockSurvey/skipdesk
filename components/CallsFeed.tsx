@@ -29,51 +29,81 @@ export function CallsFeed({ calls, tz }: { calls: Call[]; tz: string }) {
         ))}
       </div>
 
-      <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
-        {shown.length === 0 && <p className="py-8 text-center text-sm text-faint">No calls match.</p>}
-        {shown.map((c) => {
-          const open = openId === c.id
-          return (
-            <button
-              key={c.id}
-              onClick={() => setOpenId(open ? null : c.id)}
-              className="block w-full rounded-xl border border-line bg-panel p-4 text-left transition hover:border-[#d9d9d4] hover:bg-panel2"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  {c.sentiment && <span className="h-2 w-2 rounded-full" style={{ background: SENTIMENT_COLOR[c.sentiment] }} title={c.sentiment} />}
-                  <span className="font-mono text-sm text-ink">{c.caller_number ?? 'unknown'}</span>
-                </div>
-                {c.outcome && <Badge label={OUTCOME_LABEL[c.outcome] ?? c.outcome} color={OUTCOME_COLOR[c.outcome] ?? 'var(--faint)'} />}
-              </div>
-              <p className={`mt-2 text-sm text-muted ${open ? '' : 'line-clamp-2'}`}>{c.summary ?? 'No summary captured.'}</p>
-              <div className="mt-2.5 flex items-center gap-3 font-mono text-[11px] text-faint">
-                <span>{relTime(c.started_at)}</span>
-                <span className="h-1 w-1 rounded-full bg-faint" />
-                <span>{fmtDuration(c.duration_seconds)}</span>
-                {c.intent && (
-                  <>
-                    <span className="h-1 w-1 rounded-full bg-faint" />
-                    <span className="text-muted">{c.intent}</span>
-                  </>
-                )}
-              </div>
-              {open && (
-                <div className="mt-3 border-t border-line pt-3 text-xs text-muted">
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-faint">Started</div>
-                  <div className="mt-0.5">{fmtDateTime(c.started_at, tz)}</div>
-                  {c.transcript && (
-                    <>
-                      <div className="mt-2 font-mono text-[10px] uppercase tracking-wider text-faint">Transcript</div>
-                      <p className="mt-0.5 whitespace-pre-wrap leading-relaxed">{c.transcript}</p>
-                    </>
+      <div className="max-h-[560px] overflow-auto rounded-xl border border-line">
+        <table className="w-full border-collapse text-sm">
+          <thead className="sticky top-0 z-10 bg-panel2">
+            <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-faint">
+              <Th>Caller</Th>
+              <Th>Outcome</Th>
+              <Th>Summary</Th>
+              <Th>Intent</Th>
+              <Th>Duration</Th>
+              <Th className="text-right">When</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-sm text-faint">No calls match.</td>
+              </tr>
+            )}
+            {shown.map((c) => {
+              const open = openId === c.id
+              return (
+                <FragmentRow key={c.id}>
+                  <tr onClick={() => setOpenId(open ? null : c.id)} className="cursor-pointer border-t border-line transition hover:bg-panel2">
+                    <td className="whitespace-nowrap px-3 py-3 align-top">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] text-faint transition-transform ${open ? 'rotate-90' : ''}`}>▸</span>
+                        {c.sentiment && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: SENTIMENT_COLOR[c.sentiment] }} title={c.sentiment} />}
+                        <span className="font-mono text-[13px] text-ink">{c.caller_number ?? 'unknown'}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      {c.outcome ? <Badge label={OUTCOME_LABEL[c.outcome] ?? c.outcome} color={OUTCOME_COLOR[c.outcome] ?? 'var(--faint)'} /> : <span className="text-faint">—</span>}
+                    </td>
+                    <td className="px-3 py-3 align-top text-muted">
+                      <p className="line-clamp-2 max-w-[320px]" title={c.summary ?? ''}>{c.summary ?? 'No summary captured.'}</p>
+                    </td>
+                    <td className="px-3 py-3 align-top text-muted">{c.intent ?? '—'}</td>
+                    <td className="whitespace-nowrap px-3 py-3 align-top font-mono text-[12px] text-faint">{fmtDuration(c.duration_seconds)}</td>
+                    <td suppressHydrationWarning className="whitespace-nowrap px-3 py-3 text-right align-top font-mono text-[11px] text-faint">{relTime(c.started_at)}</td>
+                  </tr>
+                  {open && (
+                    <tr className="border-t border-line bg-panel2/60">
+                      <td colSpan={6} className="px-3 pb-4 pt-1 text-xs text-muted">
+                        <Label>Started</Label>
+                        <div className="mt-0.5">{fmtDateTime(c.started_at, tz)}</div>
+                        <Label className="mt-3">Summary</Label>
+                        <p className="mt-0.5 leading-relaxed">{c.summary ?? 'No summary captured.'}</p>
+                        {c.transcript && (
+                          <>
+                            <Label className="mt-3">Transcript</Label>
+                            <p className="mt-0.5 whitespace-pre-wrap leading-relaxed">{c.transcript}</p>
+                          </>
+                        )}
+                      </td>
+                    </tr>
                   )}
-                </div>
-              )}
-            </button>
-          )
-        })}
+                </FragmentRow>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )
+}
+
+/** Group a main row + its (optional) detail row without an extra DOM node. */
+function FragmentRow({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
+}
+
+function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <th className={`px-3 py-2.5 font-medium ${className}`}>{children}</th>
+}
+
+function Label({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`font-mono text-[10px] uppercase tracking-wider text-faint ${className}`}>{children}</div>
 }

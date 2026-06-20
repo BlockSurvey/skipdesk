@@ -6,6 +6,11 @@ import { fmtTime, initials, STATUS_COLOR } from '@/lib/format'
 import { Badge } from './Badge'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+// Explicit names so date labels are byte-identical on server and client (avoids
+// locale/ICU separator differences that would break hydration).
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const WEEKDAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 /** yyyy-mm-dd for an instant, as seen in the business timezone. */
 function localKey(iso: string, tz: string): string {
@@ -37,7 +42,7 @@ export function CalendarBoard({ appointments, tz }: { appointments: Appointment[
   const first = new Date(Date.UTC(cursor.y, cursor.mo - 1, 1))
   const startWeekday = (first.getUTCDay() + 6) % 7 // Mon=0
   const daysInMonth = new Date(Date.UTC(cursor.y, cursor.mo, 0)).getUTCDate()
-  const monthLabel = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+  const monthLabel = `${MONTHS[cursor.mo - 1]} ${cursor.y}`
 
   const cells: (string | null)[] = []
   for (let i = 0; i < startWeekday; i++) cells.push(null)
@@ -54,6 +59,8 @@ export function CalendarBoard({ appointments, tz }: { appointments: Appointment[
   }
 
   const dayAppts = byDay.get(selected) ?? []
+  const [sy, sm, sd] = selected.split('-').map(Number)
+  const selectedLabel = `${WEEKDAYS_LONG[new Date(Date.UTC(sy!, sm! - 1, sd!)).getUTCDay()]} ${sd} ${MONTHS_SHORT[sm! - 1]}`
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
@@ -102,9 +109,7 @@ export function CalendarBoard({ appointments, tz }: { appointments: Appointment[
 
       <div className="rounded-xl border border-line bg-panel2 p-4">
         <div className="mb-3 flex items-baseline justify-between">
-          <h4 className="text-sm font-medium text-ink">
-            {new Date(selected + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
-          </h4>
+          <h4 className="text-sm font-medium text-ink">{selectedLabel}</h4>
           <span className="text-xs font-medium text-amber">{dayAppts.length} appt{dayAppts.length === 1 ? '' : 's'}</span>
         </div>
         {dayAppts.length === 0 ? (

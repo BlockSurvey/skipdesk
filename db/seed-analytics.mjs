@@ -1,13 +1,17 @@
 /**
- * Generates rich demo analytics data for the seeded demo clinic so the dashboard
- * has something meaningful to show. Writes db/seed-analytics.sql.
+ * Generates rich transactional analytics data (calls, appointments, leads) for a
+ * business so its dashboard has meaningful data to show. Writes db/seed-analytics.sql.
  *   node db/seed-analytics.mjs > db/seed-analytics.sql
  *   wrangler d1 execute skip-desk-db --remote --file db/seed-analytics.sql
+ *
+ * Defaults to the demo clinic; override per business via env:
+ *   BIZ_ID=<uuid> TZ_NAME=Asia/Kolkata TZ_OFFSET=+05:30 SERVICES='A|B|C' node db/seed-analytics.mjs
  */
 import { randomUUID } from 'node:crypto'
 
-const BIZ = 'd53a9e4e-d775-4765-8bcd-bbdd8f8276cb' // demo clinic (mirrors db/seed.sql)
-const TZ_OFFSET = '+05:30' // Asia/Kolkata
+const BIZ = process.env.BIZ_ID ?? 'd53a9e4e-d775-4765-8bcd-bbdd8f8276cb' // demo clinic (mirrors db/seed.sql)
+const TZ_NAME = process.env.TZ_NAME ?? 'Asia/Kolkata'
+const TZ_OFFSET = process.env.TZ_OFFSET ?? '+05:30' // Asia/Kolkata
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)]
 const wpick = (pairs) => {
@@ -20,7 +24,9 @@ const sq = (s) => (s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`)
 
 const FIRST = ['Aarav', 'Diya', 'Vivaan', 'Ananya', 'Aditya', 'Ishaan', 'Saanvi', 'Kabir', 'Myra', 'Reyansh', 'Anika', 'Arjun', 'Riya', 'Vihaan', 'Pari', 'Rohan', 'Aisha', 'Karan', 'Neha', 'Dev']
 const LAST = ['Sharma', 'Iyer', 'Patel', 'Nair', 'Reddy', 'Gupta', 'Menon', 'Khan', 'Rao', 'Das']
-const SERVICES = ['General consultation', 'Pediatric check-up', 'Dermatology consult', 'Routine diagnostics', 'Follow-up visit', 'Vaccination']
+const SERVICES = process.env.SERVICES
+  ? process.env.SERVICES.split('|')
+  : ['General consultation', 'Pediatric check-up', 'Dermatology consult', 'Routine diagnostics', 'Follow-up visit', 'Vaccination']
 const INTENTS = ['book appointment', 'reschedule', 'opening hours', 'directions', 'insurance question', 'prescription refill', 'test results', 'specialist referral']
 const phone = () => `+9198${Math.floor(10000000 + Math.random() * 89999999)}`
 const name = () => `${pick(FIRST)} ${pick(LAST)}`
@@ -71,7 +77,7 @@ for (let i = 0; i < 34; i++) {
   const nm = name()
   rows.push(
     `INSERT INTO appointments (id,business_id,customer_name,customer_phone,customer_email,service,starts_at,ends_at,timezone,status,location,created_at,updated_at) VALUES ` +
-    `(${sq(randomUUID())},${sq(BIZ)},${sq(nm)},${sq(phone())},${sq(nm.toLowerCase().replace(/[^a-z]/g, '.') + '@example.com')},${sq(pick(SERVICES))},${sq(iso(start))},${sq(iso(end))},'Asia/Kolkata',${sq(status)},'12 MG Road, Bengaluru',${sq(iso(start))},${sq(iso(start))});`,
+    `(${sq(randomUUID())},${sq(BIZ)},${sq(nm)},${sq(phone())},${sq(nm.toLowerCase().replace(/[^a-z]/g, '.') + '@example.com')},${sq(pick(SERVICES))},${sq(iso(start))},${sq(iso(end))},${sq(TZ_NAME)},${sq(status)},'12 MG Road, Bengaluru',${sq(iso(start))},${sq(iso(start))});`,
   )
 }
 

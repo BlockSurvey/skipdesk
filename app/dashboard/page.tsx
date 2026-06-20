@@ -6,7 +6,6 @@ import { CalendarBoard } from '@/components/CalendarBoard'
 import { CallsFeed } from '@/components/CallsFeed'
 import { LeadsList } from '@/components/LeadsList'
 import { CallsTrend, OutcomeDonut, SentimentSplit } from '@/components/Charts'
-import { ClientOnly, Skeleton } from '@/components/ClientOnly'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,9 +65,7 @@ export default async function DashboardPage() {
       <section id="calendar" className="mt-8 scroll-mt-20">
         <SectionHead title="Appointment calendar" desc="Days with bookings are dotted by status — pick a day to see who’s coming in." />
         <Card>
-          <ClientOnly fallback={<Skeleton className="h-[360px]" />}>
-            <CalendarBoard appointments={data.appointments} tz={tz} />
-          </ClientOnly>
+          <CalendarBoard appointments={data.appointments} tz={tz} />
         </Card>
       </section>
 
@@ -76,9 +73,7 @@ export default async function DashboardPage() {
       <section id="callers" className="mt-8 scroll-mt-20">
         <SectionHead title="Who reached out" desc={`${data.calls.length} calls — tap any to read its summary and transcript.`} />
         <Card>
-          <ClientOnly fallback={<Skeleton className="h-[400px]" />}>
-            <CallsFeed calls={data.calls} tz={tz} />
-          </ClientOnly>
+          <CallsFeed calls={data.calls} tz={tz} />
         </Card>
       </section>
 
@@ -86,9 +81,7 @@ export default async function DashboardPage() {
       <section id="leads" className="mt-8 scroll-mt-20">
         <SectionHead title="Leads to follow up" desc={`${data.leads.length} captured — what the agent couldn’t close on the call.`} />
         <Card>
-          <ClientOnly fallback={<Skeleton className="h-[300px]" />}>
-            <LeadsList leads={data.leads} />
-          </ClientOnly>
+          <LeadsList leads={data.leads} />
         </Card>
       </section>
 
