@@ -29,6 +29,7 @@ import {
   BUSINESS_STATUSES,
   CALL_DIRECTIONS,
   CALL_OUTCOMES,
+  DOCUMENT_STATUSES,
   LEAD_STATUSES,
   LEAD_URGENCIES,
   SENTIMENTS,
@@ -348,6 +349,63 @@ export const appointments = sqliteTable(
   }),
 )
 
+// ── 4.12 documents — uploaded knowledge-base files (one row per file) ─────────
+
+export const documents = sqliteTable(
+  'documents',
+  {
+    id: pk(),
+    businessId: text('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    filename: text('filename').notNull(), // original upload name
+    title: text('title'), // optional display title (defaults to filename in UI)
+    contentType: text('content_type').notNull(), // upload MIME
+    sizeBytes: integer('size_bytes').notNull(),
+    r2Key: text('r2_key').notNull(), // documents/{business_id}/{id}/{filename}
+    status: text('status').notNull().default('processing'),
+    error: text('error'), // failure reason when status='failed'
+    chunkCount: integer('chunk_count').notNull().default(0),
+    uploadedBy: text('uploaded_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => ({
+    // Knowledge page: reverse-chron list of a tenant's documents.
+    businessCreatedIdx: index('idx_documents_business_created').on(t.businessId, t.createdAt),
+    // Poll/filter by processing status within a tenant.
+    businessStatusIdx: index('idx_documents_business_status').on(t.businessId, t.status),
+    statusCk: check('ck_documents_status', oneOf(t.status, DOCUMENT_STATUSES)),
+  }),
+)
+
+// ── 4.13 kb_chunks — one row per chunk + its embedding (vectors live in D1) ───
+
+export const kbChunks = sqliteTable(
+  'kb_chunks',
+  {
+    id: pk(),
+    businessId: text('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    documentId: text('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    chunkIndex: integer('chunk_index').notNull(), // order within the document
+    text: text('text').notNull(), // chunk content (returned to the agent)
+    /** Normalized embedding vector (bge-base, 768 dims) stored as JSON. */
+    embedding: text('embedding', { mode: 'json' }).$type<number[]>().notNull(),
+    charCount: integer('char_count'),
+    createdAt: createdAt(),
+  },
+  (t) => ({
+    // search_knowledge_base scans all of a tenant's chunks → leading business_id.
+    businessIdx: index('idx_kb_chunks_business').on(t.businessId),
+    // Per-document delete / count.
+    documentIdx: index('idx_kb_chunks_document').on(t.documentId),
+  }),
+)
+
 // ── relations (for Drizzle relational queries: joins for dashboard panes) ─────
 
 export const businessesRelations = relations(businesses, ({ many }) => ({
@@ -360,6 +418,7 @@ export const businessesRelations = relations(businesses, ({ many }) => ({
   calls: many(calls),
   leads: many(leads),
   appointments: many(appointments),
+  documents: many(documents),
 }))
 
 export const phoneNumbersRelations = relations(phoneNumbers, ({ one, many }) => ({
@@ -388,6 +447,17 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
   business: one(businesses, { fields: [appointments.businessId], references: [businesses.id] }),
   call: one(calls, { fields: [appointments.callId], references: [calls.id] }),
   lead: one(leads, { fields: [appointments.leadId], references: [leads.id] }),
+}))
+
+export const documentsRelations = relations(documents, ({ one, many }) => ({
+  business: one(businesses, { fields: [documents.businessId], references: [businesses.id] }),
+  uploader: one(users, { fields: [documents.uploadedBy], references: [users.id] }),
+  chunks: many(kbChunks),
+}))
+
+export const kbChunksRelations = relations(kbChunks, ({ one }) => ({
+  business: one(businesses, { fields: [kbChunks.businessId], references: [businesses.id] }),
+  document: one(documents, { fields: [kbChunks.documentId], references: [documents.id] }),
 }))
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -424,3 +494,7 @@ export type Lead = typeof leads.$inferSelect
 export type NewLead = typeof leads.$inferInsert
 export type Appointment = typeof appointments.$inferSelect
 export type NewAppointment = typeof appointments.$inferInsert
+export type Document = typeof documents.$inferSelect
+export type NewDocument = typeof documents.$inferInsert
+export type KbChunk = typeof kbChunks.$inferSelect
+export type NewKbChunk = typeof kbChunks.$inferInsert

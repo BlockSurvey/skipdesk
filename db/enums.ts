@@ -42,6 +42,11 @@ export const APPOINTMENT_STATUSES = [
 ] as const
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number]
 
+// Lifecycle of an uploaded knowledge-base document: queued → being parsed/embedded
+// → searchable, or terminally failed (with a reason stored on the row).
+export const DOCUMENT_STATUSES = ['pending', 'processing', 'ready', 'failed'] as const
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number]
+
 // 'owner' = the account that signed up and owns the business (single-owner model).
 export const USER_ROLES = ['owner', 'admin', 'agent', 'viewer'] as const
 export type UserRole = (typeof USER_ROLES)[number]
@@ -55,5 +60,7 @@ export const API_SCOPES = [
   'calls:read',
   'calls:write',
   'info:read',
+  'knowledge:read',
+  'knowledge:write',
 ] as const
 export type ApiScope = (typeof API_SCOPES)[number]
