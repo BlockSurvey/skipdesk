@@ -102,7 +102,7 @@ export default async function Landing() {
                 Those callers don't leave a voicemail. They call the next business.
               </p>
               <p className="mt-3 text-muted">
-                Skip Desk picks up every time, sounds like your best receptionist, and turns the call into a booking or a
+                SkipDesk picks up every time, sounds like your best receptionist, and turns the call into a booking or a
                 follow-up you can actually win.
               </p>
             </div>
@@ -177,7 +177,7 @@ export default async function Landing() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-sm text-faint sm:flex-row">
           <Brand small />
-          <span>© {2026} Skip Desk · The AI front desk for small business</span>
+          <span>© {2026} SkipDesk · The AI front desk for small business</span>
         </div>
       </footer>
     </div>

@@ -12,6 +12,7 @@ export default {
         ink: 'var(--ink)',
         muted: 'var(--muted)',
         faint: 'var(--faint)',
+        brand: 'var(--brand)',
         amber: 'var(--amber)',
         teal: 'var(--teal)',
         rose: 'var(--rose)',
@@ -20,6 +21,7 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        brand: ['var(--font-brand)', 'var(--font-sans)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
     },

@@ -13,6 +13,9 @@
   --faint: #9c9ca2;
   --primary: #1b1b1d;
 
+  /* brand — the SkipDesk voice-pulse orange (logo mark + "Desk" wordmark) */
+  --brand: #e8462b;
+
   /* data + status accents — readable mid-tones on white */
   --amber: #c47d1a;
   --teal: #16a34a;

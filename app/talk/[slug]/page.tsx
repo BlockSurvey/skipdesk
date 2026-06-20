@@ -25,7 +25,7 @@ export default async function TalkPage({ params }: { params: { slug: string } })
       <header className="border-b border-line">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-6">
           <Brand small />
-          <span className="text-xs text-faint">powered by Skip Desk</span>
+          <span className="text-xs text-faint">powered by SkipDesk</span>
         </div>
       </header>
 

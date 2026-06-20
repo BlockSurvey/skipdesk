@@ -14,7 +14,7 @@
  * v0.1.1 nests assistantId/assistantOverrides under a transient `assistant`, which Vapi's
  * /call/web rejects with 400.
  *
- * Optional attribute: data-color (button accent, default Skip Desk amber).
+ * Optional attribute: data-color (button accent, default SkipDesk coral).
  */
 (function () {
   var WORKER_BASE = 'https://skip-desk-mcp.sweet-night-5b17.workers.dev'
@@ -26,7 +26,7 @@
     console.error('[SkipDesk] embed.js: add data-business="<your-slug-or-id>" to the script tag')
     return
   }
-  var accent = (tag.getAttribute('data-color') || '#d97706')
+  var accent = (tag.getAttribute('data-color') || '#e8462b')
   var by = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(business) ? 'businessId' : 'slug'
 
   fetch(WORKER_BASE + '/widget/config?' + by + '=' + encodeURIComponent(business))
@@ -78,7 +78,7 @@
 
   function setLive(btn, on) {
     btn.style.opacity = '1'
-    btn.style.background = on ? '#e11d48' : (btn.getAttribute('data-accent') || '#d97706')
+    btn.style.background = on ? '#e11d48' : (btn.getAttribute('data-accent') || '#e8462b')
     btn.innerHTML = on ? stopSvg() : micSvg()
   }
   function micSvg() {

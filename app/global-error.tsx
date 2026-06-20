@@ -33,10 +33,18 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ display: 'inline-flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#1b1b1d' }}>
-            <span style={{ height: 6, width: 6, borderRadius: 999, background: '#c47d1a' }} />
+          <svg width="20" height="20" viewBox="0 0 110 110" fill="#e8462b" aria-hidden="true">
+            <rect x="2.5" y="39" width="9" height="32" rx="4.5" />
+            <rect x="18.5" y="28" width="9" height="54" rx="4.5" />
+            <rect x="34.5" y="15" width="9" height="80" rx="4.5" />
+            <rect x="50.5" y="5" width="9" height="100" rx="4.5" />
+            <rect x="66.5" y="15" width="9" height="80" rx="4.5" />
+            <rect x="82.5" y="28" width="9" height="54" rx="4.5" />
+            <rect x="98.5" y="39" width="9" height="32" rx="4.5" />
+          </svg>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>
+            Skip<span style={{ color: '#e8462b' }}>Desk</span>
           </span>
-          <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>Skip Desk</span>
         </div>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em' }}>Something went wrong.</h1>
         <p style={{ margin: 0, maxWidth: 420, color: '#6a6a70' }}>

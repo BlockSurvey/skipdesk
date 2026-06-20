@@ -47,7 +47,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
             {isSignup ? 'Create your account' : 'Welcome back'}
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            {isSignup ? 'Start your AI front desk in minutes.' : 'Sign in to your Skip Desk dashboard.'}
+            {isSignup ? 'Start your AI front desk in minutes.' : 'Sign in to your SkipDesk dashboard.'}
           </p>
 
           <form onSubmit={submit} className="card mt-7 space-y-4 p-6">
@@ -98,7 +98,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
             {isSignup ? (
               <>Already have an account? <Link href="/login" className="font-medium text-ink underline-offset-2 hover:underline">Sign in</Link></>
             ) : (
-              <>New to Skip Desk? <Link href="/signup" className="font-medium text-ink underline-offset-2 hover:underline">Create an account</Link></>
+              <>New to SkipDesk? <Link href="/signup" className="font-medium text-ink underline-offset-2 hover:underline">Create an account</Link></>
             )}
           </p>
         </div>
