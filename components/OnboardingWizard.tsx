@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { INDUSTRY_OPTIONS } from '@/lib/icp'
 import { Brand } from './Brand'
 
 const TIMEZONES = ['Asia/Kolkata', 'America/New_York', 'America/Los_Angeles', 'America/Chicago', 'Europe/London', 'Asia/Dubai', 'Asia/Singapore', 'Australia/Sydney', 'UTC']
-const INDUSTRIES = ['Dental / Medspa', 'Medical clinic', 'Salon / Spa', 'Fitness studio', 'Home services', 'Veterinary', 'Professional services', 'Other']
 const DAYS = [
   { dow: 1, label: 'Mon' }, { dow: 2, label: 'Tue' }, { dow: 3, label: 'Wed' },
   { dow: 4, label: 'Thu' }, { dow: 5, label: 'Fri' }, { dow: 6, label: 'Sat' }, { dow: 0, label: 'Sun' },
@@ -16,18 +16,14 @@ type Hour = { day_of_week: number; open_time: string; close_time: string; closed
 const initialHours = (): Hour[] =>
   DAYS.map((d) => ({ day_of_week: d.dow, open_time: '09:00', close_time: '18:00', closed: d.dow === 0 || d.dow === 6 }))
 
-type Done = { business: { id: string; name: string }; api_key: string; mcp_url: string }
-
 export function OnboardingWizard() {
   const router = useRouter()
   const [step, setStep] = useState(0)
-  const [biz, setBiz] = useState({ name: '', industry: INDUSTRIES[0], timezone: 'Asia/Kolkata', phone: '', address: '' })
+  const [biz, setBiz] = useState({ name: '', industry: INDUSTRY_OPTIONS[0], timezone: 'Asia/Kolkata', phone: '', address: '' })
   const [hours, setHours] = useState<Hour[]>(initialHours)
   const [prefs, setPrefs] = useState({ agentName: '', greeting: '', defaultAppointmentMinutes: 30 })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState<Done | null>(null)
-  const [copied, setCopied] = useState(false)
 
   const setHour = (dow: number, patch: Partial<Hour>) =>
     setHours((hs) => hs.map((h) => (h.day_of_week === dow ? { ...h, ...patch } : h)))
@@ -43,53 +39,20 @@ export function OnboardingWizard() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...biz, ...prefs, hours }),
       })
-      // Already onboarded (e.g. a stale token showed this page) → just go to the dashboard.
-      if (res.status === 409) {
-        router.push('/dashboard')
-        router.refresh()
-        return
+      // 409 = already onboarded (stale token showed this page). Either way, the
+      // business now exists — drop the user straight into their Assistants page.
+      // (The API key is recoverable anytime via Settings → rotate; we skip the
+      // one-time reveal screen for a cleaner go-live.)
+      if (!res.ok && res.status !== 409) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Could not create your business')
       }
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not create your business')
-      setDone(data)
+      router.push('/dashboard')
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
       setLoading(false)
     }
-  }
-
-  if (done) {
-    return (
-      <Shell>
-        <div className="animate-rise">
-          <span className="pill bg-[color-mix(in_srgb,var(--teal)_12%,transparent)] text-teal">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal" /> You're live
-          </span>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink">{done.business.name} is ready.</h1>
-          <p className="mt-2 text-muted">Save this API key now — it's shown only once. Your voice agent uses it to send every call, lead, and booking to your dashboard.</p>
-
-          <div className="card mt-7 p-6">
-            <div className="text-xs font-medium text-faint">API key</div>
-            <div className="mt-2 flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto rounded-lg border border-line bg-panel2 px-3 py-2.5 font-mono text-sm text-ink">{done.api_key}</code>
-              <button
-                onClick={() => { navigator.clipboard.writeText(done.api_key); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-                className="btn"
-              >
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-            <div className="mt-5 text-xs font-medium text-faint">MCP endpoint</div>
-            <code className="mt-2 block overflow-x-auto rounded-lg border border-line bg-panel2 px-3 py-2.5 font-mono text-sm text-muted">{done.mcp_url}</code>
-          </div>
-
-          <button onClick={() => { router.push('/dashboard'); router.refresh() }} className="btn btn-primary mt-6 w-full justify-center py-3">
-            Open my dashboard →
-          </button>
-        </div>
-      </Shell>
-    )
   }
 
   return (
@@ -115,7 +78,7 @@ export function OnboardingWizard() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Industry">
                 <select value={biz.industry} onChange={(e) => setBiz({ ...biz, industry: e.target.value })} className="field">
-                  {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
+                  {INDUSTRY_OPTIONS.map((i) => <option key={i}>{i}</option>)}
                 </select>
               </Field>
               <Field label="Timezone">

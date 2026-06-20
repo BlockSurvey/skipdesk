@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { Brand, BrandMark } from '@/components/Brand'
+import { BrandMark } from '@/components/Brand'
+import { ICP_MARKETING } from '@/lib/icp'
 import { CallConsole } from '@/components/CallConsole'
 import { Magnetic } from '@/components/Magnetic'
 import { Reveal } from '@/components/Reveal'
 import { ScrollProgress } from '@/components/ScrollProgress'
+import { SiteNav } from '@/components/SiteNav'
 import { Spotlight } from '@/components/Spotlight'
 import { TiltCard } from '@/components/TiltCard'
 import { TryAgent } from '@/components/TryAgent'
@@ -38,8 +40,6 @@ const STEPS = [
   { n: '03', title: 'Point your number at it', body: 'Connect your phone line or voice agent and your front desk is live.' },
 ]
 
-const ICP_TYPES = ['Dental practices', 'Medspas', 'Hair & nail salons', 'Physiotherapy clinics', 'Yoga & fitness studios', 'Veterinary clinics', 'Home services', 'Auto shops', 'Law firms', 'Real estate teams']
-
 const STATS = [
   { big: '24/7', small: 'always answering', bg: 'var(--brand)' },
   { big: '0', small: 'calls to voicemail', bg: 'var(--teal)' },
@@ -55,25 +55,15 @@ export default async function Landing() {
       <ScrollProgress />
       <div className="grain-overlay" aria-hidden />
 
-      {/* ── Header: opaque light sticky bar (coral hero must not bleed through) ── */}
-      <header className="sticky top-0 z-40 border-b border-line bg-bg/95 shadow-[0_1px_0_rgba(0,0,0,0.02)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Brand />
-          <nav className="flex items-center gap-2">
-            <Link href="/login" className="btn">Sign in</Link>
-            <Magnetic>
-              <Link href="/signup" className="btn btn-brand">Get started</Link>
-            </Magnetic>
-          </nav>
-        </div>
-      </header>
+      {/* ── Adaptive nav: transparent over the coral hero, frosted-white on scroll ── */}
+      <SiteNav />
 
       <main>
         {/* ── Hero: full-bleed coral colour block + live call console ── */}
         <section className="relative overflow-hidden bg-brand text-white">
           <Aurora />
           <PulseField />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-36 pt-20 md:pb-44 md:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-36 pt-28 md:pb-44 md:pt-32 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
             {/* left: copy */}
             <div className="text-center lg:text-left">
               <span className="pill mx-auto bg-white/15 text-white backdrop-blur-sm lg:mx-0">
@@ -130,7 +120,7 @@ export default async function Landing() {
         <section className="space-y-3 overflow-hidden border-y border-line bg-panel2/50 py-7">
           <div className="marquee-mask">
             <div className="marquee-track gap-3">
-              {[...ICP_TYPES, ...ICP_TYPES].map((t, i) => (
+              {[...ICP_MARKETING, ...ICP_MARKETING].map((t, i) => (
                 <span key={i} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-line bg-panel px-4 py-1.5 text-sm font-medium text-ink">
                   <span className="h-1.5 w-1.5 rounded-full bg-brand" />
                   {t}
@@ -140,7 +130,7 @@ export default async function Landing() {
           </div>
           <div className="marquee-mask">
             <div className="marquee-track marquee-reverse gap-3">
-              {[...ICP_TYPES.slice().reverse(), ...ICP_TYPES.slice().reverse()].map((t, i) => (
+              {[...ICP_MARKETING.slice().reverse(), ...ICP_MARKETING.slice().reverse()].map((t, i) => (
                 <span key={i} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-line bg-panel px-4 py-1.5 text-sm font-medium text-muted">
                   <span className="h-1.5 w-1.5 rounded-full bg-teal" />
                   {t}
@@ -149,7 +139,7 @@ export default async function Landing() {
             </div>
           </div>
           <div className="mx-auto mt-6 max-w-6xl px-6 text-center text-sm text-muted">
-            Built for <span className="font-medium text-ink">clinics, dental &amp; medspas, salons, studios, and local service businesses</span> — anyone who loses revenue to a ringing phone.
+            Built for <span className="font-medium text-ink">dental &amp; skin clinics, salons &amp; spas, medical practices, fitness studios, and local home, auto &amp; professional services</span> — anyone who loses revenue to a ringing phone.
           </div>
         </section>
 
@@ -178,7 +168,7 @@ export default async function Landing() {
         </section>
 
         {/* ── Pillars: full-bleed dark ink block with a cursor spotlight ── */}
-        <section className="bg-ink text-white">
+        <section id="why" className="scroll-mt-24 bg-ink text-white">
           <Spotlight>
             <div className="relative z-10 mx-auto max-w-6xl px-6 band-pad">
               <Reveal className="max-w-2xl">

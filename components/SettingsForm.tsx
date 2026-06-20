@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { INDUSTRY_OPTIONS } from '@/lib/icp'
 import type { BusinessConfig } from '@/lib/api'
 
 const TIMEZONES = ['Asia/Kolkata', 'America/New_York', 'America/Los_Angeles', 'America/Chicago', 'Europe/London', 'Asia/Dubai', 'Asia/Singapore', 'Australia/Sydney', 'UTC']
@@ -65,7 +66,14 @@ export function SettingsForm({ config, userEmail }: { config: BusinessConfig; us
               {TIMEZONES.map((t) => <option key={t}>{t}</option>)}
             </select>
           </Field>
-          <Field label="Industry"><input className="field" value={profile.industry} onChange={(e) => setProfile({ ...profile, industry: e.target.value })} /></Field>
+          <Field label="Industry">
+            <select className="field" value={profile.industry} onChange={(e) => setProfile({ ...profile, industry: e.target.value })}>
+              <option value="">Select industry…</option>
+              {/* preserve any legacy free-text value that isn't in the canonical list */}
+              {profile.industry && !INDUSTRY_OPTIONS.includes(profile.industry) && <option value={profile.industry}>{profile.industry}</option>}
+              {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+            </select>
+          </Field>
           <Field label="Phone"><input className="field" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
         </Grid>
         <Field label="Address"><input className="field" value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} /></Field>

@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { VoiceOrb, type OrbPhase } from './voice/VoiceOrb'
 
 /**
  * The hero centerpiece: a self-playing dramatization of one SkipDesk call.
@@ -48,6 +50,13 @@ export function CallConsole() {
   const [step, setStep] = useState(0)
   const [typed, setTyped] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const speakingRef = useRef(false)
+
+  // Synthetic amplitude for the scripted orb — a gentle wobble while "speaking".
+  const getAmp = useCallback(
+    () => (speakingRef.current ? 0.45 + 0.4 * Math.abs(Math.sin(performance.now() / 110)) : 0),
+    [],
+  )
 
   // Step machine: type the current line out, pause, advance; reset at the end.
   useEffect(() => {
@@ -87,6 +96,21 @@ export function CallConsole() {
   const current = SCRIPT[step]
   const speaking = !reduce && !!current && current.who === 'agent' && typed < current.text.length
 
+  // Map the script's position onto the shared voice-orb phases so the hero
+  // dramatization speaks the exact same visual language as the live orb.
+  const orbPhase: OrbPhase = done
+    ? 'ended'
+    : !current
+      ? 'thinking'
+      : current.who === 'system'
+        ? 'connecting'
+        : current.who === 'agent'
+          ? typed < current.text.length
+            ? 'speaking'
+            : 'listening'
+          : 'listening'
+  speakingRef.current = orbPhase === 'speaking'
+
   // Lines to render: all completed lines + the in-progress one (partial).
   const lines = done
     ? SCRIPT.map((l) => ({ ...l, shown: l.text, complete: true }))
@@ -123,12 +147,24 @@ export function CallConsole() {
         ))}
       </div>
 
-      {/* waveform + status footer */}
+      {/* orb + status footer */}
       <div className="border-t border-line bg-panel2/40 px-5 py-4">
         <div className="flex items-center gap-3">
-          <Waveform speaking={speaking} />
+          <VoiceOrb phase={orbPhase} getAmplitude={getAmp} size="xs" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: orbPhase === 'speaking' ? 'var(--brand)' : orbPhase === 'listening' ? 'var(--teal)' : 'var(--faint)' }}
+              />
+              <span className="text-[13px] font-medium text-ink">
+                {done ? 'Call complete' : orbPhase === 'speaking' ? 'SkipDesk is speaking' : orbPhase === 'connecting' ? 'Connecting…' : 'Your turn — listening'}
+              </span>
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-faint">live demo · auto-playing</div>
+          </div>
           <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-faint">
-            {done ? 'call complete' : speaking ? 'agent speaking' : 'listening'}
+            {done ? 'done' : speaking ? 'speaking' : 'listening'}
           </span>
         </div>
         <div className="mt-3.5 flex items-center gap-2">
@@ -187,32 +223,6 @@ function Bubble({ who, tag, children }: { who: Speaker; tag?: string; children: 
           {tag}
         </span>
       )}
-    </div>
-  )
-}
-
-function Waveform({ speaking }: { speaking: boolean }) {
-  // Deterministic bar heights (index-derived) so SSR/client agree.
-  const bars = useMemo(
-    () => Array.from({ length: 32 }, (_, i) => ({ h: 22 + Math.round((Math.sin(i * 1.7) * 0.5 + 0.5) * 78), d: (i % 8) * 0.07 })),
-    [],
-  )
-  return (
-    <div className="flex h-7 items-center gap-[3px]" aria-hidden>
-      {bars.map((b, i) => (
-        <span
-          key={i}
-          className="wave-bar w-[3px] rounded-full bg-brand"
-          style={{
-            height: `${b.h}%`,
-            animationDelay: `${b.d}s`,
-            animationPlayState: speaking ? 'running' : 'paused',
-            opacity: speaking ? 0.85 : 0.3,
-            transform: speaking ? undefined : 'scaleY(0.3)',
-            transition: 'opacity .3s, transform .3s',
-          }}
-        />
-      ))}
     </div>
   )
 }

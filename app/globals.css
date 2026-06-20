@@ -314,6 +314,121 @@ body {
   animation: waveFlex 0.85s ease-in-out infinite;
 }
 
+/* ───────────────────────────────────────────────────────────────
+   Voice orb — the signature SkipDesk voice visualization. Shared by
+   the live <VoiceOrb> (real Vapi calls) and the scripted hero console.
+   Colour + motion come from data-phase; --orb is the phase colour and
+   --amp (0–1) is the live audio amplitude written each frame.
+   ─────────────────────────────────────────────────────────────── */
+.voice-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+/* The breathing carrier (slow idle life) wraps the reactive core. */
+.orb-breathe {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  animation: orbBreathe 3.6s ease-in-out infinite;
+}
+@keyframes orbBreathe {
+  0%, 100% { transform: scale(0.965); }
+  50% { transform: scale(1); }
+}
+/* The solid core — colour fill + white glyph. Scales with live amplitude. */
+.orb-core {
+  display: grid;
+  place-items: center;
+  width: 56%;
+  height: 56%;
+  border-radius: 50%;
+  color: #fff;
+  background: radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--orb) 52%, #fff), var(--orb));
+  box-shadow:
+    0 14px 34px -10px color-mix(in srgb, var(--orb) 65%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: scale(calc(1 + var(--amp, 0) * 0.16));
+  transition: background 0.45s ease, box-shadow 0.45s ease;
+}
+/* The soft glow halo — opacity + scale breathe with live amplitude. */
+.orb-halo {
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--orb) 48%, transparent), transparent 70%);
+  filter: blur(9px);
+  opacity: calc(0.32 + var(--amp, 0) * 0.6);
+  transform: scale(calc(1 + var(--amp, 0) * 0.55));
+  transition: opacity 0.2s ease;
+}
+/* Concentric rings — direction encodes turn-taking. */
+.orb-ring {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--orb) 55%, transparent);
+  opacity: 0;
+}
+.voice-orb[data-phase='speaking'] .orb-ring { animation: orbEmanate 1.9s ease-out infinite; }
+.voice-orb[data-phase='speaking'] .orb-ring-2 { animation-delay: 0.95s; }
+.voice-orb[data-phase='connecting'] .orb-ring { animation: orbEmanate 1.2s ease-out infinite; }
+.voice-orb[data-phase='connecting'] .orb-ring-2 { animation-delay: 0.6s; }
+.voice-orb[data-phase='listening'] .orb-ring { animation: orbRippleIn 2.3s ease-in-out infinite; }
+.voice-orb[data-phase='listening'] .orb-ring-2 { animation-delay: 1.15s; }
+/* speaking/connecting: energy radiates OUT (the agent projects) */
+@keyframes orbEmanate {
+  0% { transform: scale(0.62); opacity: 0.55; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+/* listening: energy draws IN (the agent receives you) */
+@keyframes orbRippleIn {
+  0% { transform: scale(1.18); opacity: 0; }
+  35% { opacity: 0.5; }
+  100% { transform: scale(0.62); opacity: 0; }
+}
+
+/* Glyphs inside the core */
+.orb-eq {
+  display: flex;
+  align-items: center;
+  gap: 14%;
+  width: 42%;
+  height: 42%;
+}
+.orb-eq i {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  height: 28%;
+  animation: orbEq 0.8s ease-in-out infinite;
+}
+@keyframes orbEq {
+  0%, 100% { height: 24%; }
+  50% { height: 92%; }
+}
+.orb-dots {
+  display: flex;
+  gap: 18%;
+  width: 42%;
+  align-items: center;
+}
+.orb-dots i {
+  flex: 1;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: currentColor;
+  animation: orbDot 1.25s ease-in-out infinite;
+}
+@keyframes orbDot {
+  0%, 100% { opacity: 0.3; transform: translateY(12%); }
+  50% { opacity: 1; transform: translateY(-12%); }
+}
+
 /* Top fade-out mask for the scrolling transcript. */
 .fade-top {
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 16%);
@@ -481,7 +596,18 @@ body {
   .caret,
   .aurora > span,
   .floaty,
-  .glow-border:hover::after {
+  .glow-border:hover::after,
+  .orb-breathe,
+  .orb-ring,
+  .orb-eq i,
+  .orb-dots i {
     animation: none;
+  }
+  /* Keep the orb legible without motion: rest the core, hide moving rings. */
+  .orb-core {
+    transform: none;
+  }
+  .orb-ring {
+    opacity: 0;
   }
 }
