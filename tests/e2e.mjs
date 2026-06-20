@@ -61,9 +61,9 @@ async function main() {
     'get_business_info', 'lookup_caller', 'create_lead', 'get_lead', 'list_leads',
     'update_lead', 'check_availability', 'book_appointment', 'get_appointment',
     'list_appointments', 'reschedule_appointment', 'cancel_appointment',
-    'get_escalation_contact', 'log_call', 'list_calls',
+    'get_escalation_contact', 'log_call', 'list_calls', 'search_knowledge_base',
   ]
-  check('15 tools registered', names.length === 15, `(got ${names.length})`)
+  check('16 tools registered', names.length === 16, `(got ${names.length})`)
   for (const t of expected) check(`tool present: ${t}`, names.includes(t))
 
   // ── 1. Info / knowledge base ───────────────────────────────────────────────
