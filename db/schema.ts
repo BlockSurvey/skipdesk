@@ -68,6 +68,16 @@ export const businesses = sqliteTable(
     timezone: text('timezone').notNull(),
     locale: text('locale').notNull().default('en'),
     status: text('status').notNull().default('active'),
+    // ── profile + agent preferences (captured in onboarding, edited in settings) ──
+    industry: text('industry'),
+    phone: text('phone'),
+    address: text('address'),
+    /** Display name the voice agent uses for itself, e.g. "Sam". */
+    agentName: text('agent_name'),
+    /** Custom first-message / greeting for the voice agent. */
+    greeting: text('greeting'),
+    /** Default appointment length (minutes) when a tool doesn't specify one. */
+    defaultAppointmentMinutes: integer('default_appointment_minutes').notNull().default(30),
     createdAt: createdAt(),
   },
   (t) => ({
@@ -82,19 +92,39 @@ export const users = sqliteTable(
   'users',
   {
     id: pk(),
-    businessId: text('business_id')
-      .notNull()
-      .references(() => businesses.id, { onDelete: 'cascade' }),
+    // Nullable: a user signs up first, then creates their business during onboarding.
+    businessId: text('business_id').references(() => businesses.id, { onDelete: 'cascade' }),
     email: text('email').notNull(),
     name: text('name'),
-    role: text('role').notNull().default('agent'),
+    role: text('role').notNull().default('owner'),
     passwordHash: text('password_hash'),
     createdAt: createdAt(),
   },
   (t) => ({
-    // Email is unique per business (not globally) — a person can exist in two tenants.
-    businessEmailUq: uniqueIndex('uq_users_business_email').on(t.businessId, t.email),
+    // Email is GLOBALLY unique — login is by email + password without a business context.
+    emailUq: uniqueIndex('uq_users_email').on(t.email),
     roleCk: check('ck_users_role', oneOf(t.role, USER_ROLES)),
+  }),
+)
+
+// ── 4.11 sessions — dashboard auth (httpOnly cookie ⇄ hashed token in D1) ─────
+
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    id: pk(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** SHA-256 hex of the opaque session token; the raw token lives only in the cookie. */
+    tokenHash: text('token_hash').notNull(),
+    createdAt: createdAt(),
+    expiresAt: text('expires_at').notNull(),
+    lastSeenAt: text('last_seen_at'),
+  },
+  (t) => ({
+    tokenHashUq: uniqueIndex('uq_sessions_token_hash').on(t.tokenHash),
+    userIdx: index('idx_sessions_user').on(t.userId),
   }),
 )
 
@@ -363,6 +393,11 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
 export const usersRelations = relations(users, ({ one, many }) => ({
   business: one(businesses, { fields: [users.businessId], references: [businesses.id] }),
   assignedLeads: many(leads),
+  sessions: many(sessions),
+}))
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }))
 
 // ── inferred types (use across the data layer / API / MCP) ───────────────────
@@ -371,6 +406,8 @@ export type Business = typeof businesses.$inferSelect
 export type NewBusiness = typeof businesses.$inferInsert
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+export type Session = typeof sessions.$inferSelect
+export type NewSession = typeof sessions.$inferInsert
 export type BusinessHour = typeof businessHours.$inferSelect
 export type NewBusinessHour = typeof businessHours.$inferInsert
 export type BusinessFaq = typeof businessFaqs.$inferSelect

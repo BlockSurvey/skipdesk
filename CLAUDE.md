@@ -2,21 +2,25 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project status: DB + MCP server + dashboard all built
+## Project status: DB + MCP server + dashboard + accounts/auth all built
 
-Done: **(1)** Cloudflare D1 schema (`db/`); **(2)** the **MCP server** (`workers/mcp/`) — 15 voice-agent tools + `/register` + read-only dashboard API, deployed; **(3)** the **Next.js dashboard** (`app/`) — pick a business and see its calendar, callers + call summaries, leads, and KPIs on one page, plus an onboarding page.
+Done: **(1)** Cloudflare D1 schema (`db/`); **(2)** the **MCP server** (`workers/mcp/`) — 15 voice-agent tools + `/register` + email/password auth + onboarding + per-owner dashboard API, deployed; **(3)** the **Next.js product** (`app/`) — a marketing landing page, **signup/login (email+password, no verification)**, a 3-step **onboarding wizard**, a session-gated **/dashboard** (the owner's own business: calendar, callers+summaries, leads, KPIs), and a **/settings** page (profile, hours, FAQs, escalation, API-key rotation).
+
+**Accounts/auth model — see `docs/superpowers/specs/2026-06-20-accounts-onboarding-auth-design.md`.** Single **owner per business**. Passwords are **PBKDF2-HMAC-SHA256 hashed** (never plaintext). Sessions are **stateless ES256 JWTs** (14-day TTL): the worker **signs** with a private key (`JWT_PRIVATE_JWK` worker secret), and anyone **verifies** with the public key (committed in `lib/jwt-public-key.ts`) — so the UI verifies a session locally with no round-trip. The Next app proxies auth through its own Route Handlers and stores the JWT in an **httpOnly `sd_session` cookie** (never exposed to browser JS); `middleware.ts` does a coarse edge gate while `getSession()` does the authoritative signature verification. Logout is stateless (the UI clears the cookie; tokens aren't server-revoked). The **voice-agent/MCP path stays API-key based and unchanged**; auth only gates the human dashboard.
 
 **Live MCP server:** `https://skip-desk-mcp.sweet-night-5b17.workers.dev`
 - MCP endpoint (Streamable HTTP, for Claude/Vapi): `…/mcp`
-- Register a business → unique API key: `POST …/register`
-- Dashboard read API (consumed by the Next app): `GET …/api/businesses`, `GET …/api/businesses/:id/dashboard`
+- Register a business (machine, returns key once): `POST …/register`
+- Auth (human owners): `POST …/auth/signup`, `…/auth/login`, `…/auth/logout`, `GET …/auth/me`
+- Onboarding + owner API (session-gated): `POST …/onboarding`, `GET …/api/me/dashboard`, `…/api/me/config`, `PATCH …/api/me/business`, `PUT …/api/me/{hours,faqs,escalation}`, `POST …/api/me/key/rotate`
 
-## Dashboard (`app/` — Next.js 14 + Tailwind)
+## Dashboard / product (`app/` — Next.js 14 + Tailwind)
 
-The repo root is the Next.js project (`app/` = App Router routes); the worker keeps its own `workers/mcp/tsconfig.json` so the two toolchains don't collide. The app is a **pure frontend** that reads the worker's JSON API (`lib/api.ts`, base = `NEXT_PUBLIC_MCP_BASE` or the deployed URL) — no D1 binding needed, so `npm run dev` just works.
-- Routes: `/` (choose/create business), `/business/[id]` (one-page analytics: KPIs, charts, appointment calendar, callers+summaries, leads), `/register` (onboarding form → shows the API key once).
-- `components/` — `BusinessSwitcher`, `CalendarBoard`, `CallsFeed`, `LeadsList`, `Charts` (recharts), `Brand`, `Badge`. `lib/format.ts` holds the status/outcome/sentiment color maps + tz-aware time formatting.
-- Aesthetic: dark "voice-ops console" — Instrument Serif display + JetBrains Mono data; amber=signal, teal=booked/positive, rose=escalation. Tokens in `app/globals.css`.
+The repo root is the Next.js project (`app/` = App Router routes); the worker keeps its own `workers/mcp/tsconfig.json` so the two toolchains don't collide. The app reads the worker's JSON API and **manages auth itself**: `lib/auth-server.ts` (`getSession()`, `workerFetch()`), Route Handlers under `app/api/auth/*` set/clear the `sd_session` cookie, `app/api/proxy/[...path]` is a same-origin authed proxy to the worker, and `middleware.ts` gates `/dashboard`, `/settings`, `/onboarding`. Base URL = `NEXT_PUBLIC_MCP_BASE` or the deployed URL.
+- Routes: `/` (marketing landing), `/signup`, `/login`, `/onboarding` (3-step wizard → API key once), `/dashboard` (owner's analytics: KPIs, charts, calendar, callers+summaries, leads), `/settings`.
+- `components/` — `AuthForm`, `OnboardingWizard`, `SettingsForm`, `AppShell` (sidebar + account menu/logout), `CalendarBoard`, `CallsFeed`, `LeadsList`, `Charts` (recharts), `Brand`, `Badge`, `ClientOnly`. `lib/format.ts` holds the status/outcome/sentiment color maps + tz-aware time formatting.
+- Aesthetic: light "front-desk console" — Hanken Grotesk + JetBrains Mono; amber=signal, teal=booked/positive, rose=escalation. Tokens in `app/globals.css`.
+- **Only ever run ONE `next dev` at a time** — concurrent dev servers (or `next build` while `next dev` runs) corrupt the shared `.next/` (the `@opentelemetry` vendor-chunk / "missing required error components" failures). Verify by **compile + test**, not by running the server.
 - Commands: `npm run dev` / `npm run build` / `npm run start`.
 - Demo analytics data: `node db/seed-analytics.mjs > db/seed-analytics.sql` then `wrangler d1 execute skip-desk-db --remote --file db/seed-analytics.sql` (regenerates the demo clinic's calls/appointments/leads).
 
@@ -77,9 +81,10 @@ Build in order; everything binds to the database.
 Cloudflare Worker over D1, exposing the voice-agent tool surface as MCP tools. One `db/` schema is shared with the worker.
 - **Transport:** `/mcp` is **stateless** Streamable HTTP (`src/mcp.ts`) — each request is self-contained, so there's no session to go stale (fixes Claude's "tool not registered"). `/sse` is the legacy Durable-Object `McpAgent` path. **Both serve the identical registry** (`buildRegistry()` in `src/mcp.ts`; tools defined as plain `ToolDef`s via `createRegistrar` in `src/context.ts`, mounted on the SSE server by `mountOnServer`). Add tools in `src/tools/*` — they appear on both transports automatically.
 - **Caller identity** (`src/lib/customer.ts`): a caller is unique by `(business_id, E.164 phone)` — never by name. `resolveContact()` is the single dedup-by-phone upsert; `create_lead` and `book_appointment` both go through it, so a caller is **stored once and reused** (booking stores the caller if not found). Phones are normalized with the business's country code (from its timezone) — see `db/.../specs/2026-06-19-customer-identity-and-edge-cases.md`.
-- `src/index.ts` — fetch handler + routes (`/register`, `/api/businesses`, `/mcp`, `/sse`, `/`). Resolves the tenant from `Authorization: Bearer <key>`.
-- `src/auth.ts` — SHA-256 hex of the raw key → `api_keys.key_hash` → `{ businessId, scopes }`. This is the **canonical key hash** (registration uses the same).
-- `src/register.ts` — `POST /register` self-serve onboarding: creates a business (UUID), default Mon–Fri 09:00–18:00 hours, optional escalation contact, and one API key with full scopes (raw key returned ONCE).
+- `src/index.ts` — fetch handler + routes (`/register`, `/auth/*`, `/onboarding`, `/api/me/*`, `/mcp`, `/sse`, `/`). Resolves the machine tenant from `Authorization: Bearer <key>`.
+- `src/auth.ts` — SHA-256 hex of the raw key → `api_keys.key_hash` → `{ businessId, scopes }`. This is the **canonical hash** (registration, sessions, and key rotation all use it).
+- `src/register.ts` — `POST /register` self-serve onboarding (machine): creates a business (UUID), default Mon–Fri 09:00–18:00 hours, optional escalation contact, and one API key (raw key returned ONCE). Exports `slugify` + `newApiKey` (reused by `account.ts`).
+- **Dashboard auth (human owners):** `src/lib/password.ts` (PBKDF2 hash/verify), `src/lib/jwt.ts` (ES256 `signSession`/`verifyToken` using the `JWT_PRIVATE_JWK` secret; public key derived from it), `src/lib/session.ts` (`issueToken`, `resolveAuth` = verify JWT + load user/business from D1, `sessionToken` cookie/Bearer parsing), `src/authRoutes.ts` (`/auth/signup|login|logout|me`), `src/account.ts` (`/onboarding` re-issues a fresh token + session-gated `/api/me/*`: dashboard, config, business PATCH, hours/faqs/escalation PUT, key rotate). Every `/api/me/*` route resolves `business_id` from the session's user — never from the URL/body. The `sessions` D1 table is currently unused (reserved for a future refresh-token/denylist; auth is stateless JWT). Set the signing key once with `echo "$JWT_PRIVATE_JWK" | npx wrangler secret put JWT_PRIVATE_JWK -c workers/mcp/wrangler.toml`.
 - `src/context.ts` — `makeRegistrar()` wraps every tool with scope-checking + error handling; `DEMO_BUSINESS_ID` (mirrors `db/seed.sql`) is the no-auth fallback tenant for testing.
 - `src/tools/*` — info, leads (incl. `lookup_caller`), appointments, escalation, calls. `src/lib/` — `validate` (phone→E.164, ISO-UTC, enums), `availability` (open-hours minus bookings), `time` (tz).
 
@@ -93,7 +98,8 @@ End-to-end against the **deployed** MCP server, driving real caller workflows ov
 - `npm run test:e2e` — core workflows (45 assertions).
 - `npm run test:setup` → `npm run test:e2e:advanced` → `npm run test:teardown` — advanced suite (40 assertions; setup seeds a 2nd tenant `biz_test2`, teardown removes all test rows).
 - `npm run test:e2e:identity` — caller identity / dedup edge cases (23 assertions).
-- `npm run test:register` — onboarding (14 assertions).
+- `npm run test:e2e:auth` — accounts/auth/onboarding: signup, login, onboarding, tenant isolation, key rotation, logout, **JWT shape + ES256 + 14-day TTL** (30 assertions; uses `authtest+<ts>@example.test` accounts — clean up by `email LIKE 'authtest+%@example.test'` / `name LIKE 'Auth Test %'`).
+- `npm run test:register` — machine onboarding (14 assertions).
 - Test rows use `+1999000xxxx` phones / `test_call_*`/`adv_*` ids; `tests/fixtures-teardown.sql` cleans everything. Cloudflare creds must be exported (or `wrangler login`).
 
 ## Environment
@@ -105,4 +111,6 @@ End-to-end against the **deployed** MCP server, driving real caller workflows ov
 ## Open design questions (confirm before building the relevant piece)
 
 - `check-availability` source: business hours + our `appointments` only (v1), or live Google Calendar? (`appointments.calendar_event_id` is reserved so sync can be added without a migration.)
-- Dashboard auth: email+password for v1, or OAuth/Clerk?
+- ~~Dashboard auth: email+password for v1, or OAuth/Clerk?~~ **Resolved:** email+password, no verification, self-hosted on Cloudflare — **stateless ES256 JWT** sessions (private key signs in the worker, public key verifies on the UI), PBKDF2-hashed passwords. See the accounts/auth spec.
+
+Future (out of scope for v1, not blocked by the design): teams/invites, email verification, password reset, OAuth, rate-limiting, billing.

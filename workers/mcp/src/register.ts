@@ -34,11 +34,11 @@ const CORS = {
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: CORS })
 
-const slugify = (s: string) =>
+export const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60)
 
 /** sk_live_<48 hex> — opaque, high-entropy, shown to the business exactly once. */
-function newApiKey(): string {
+export function newApiKey(): string {
   const bytes = new Uint8Array(24)
   crypto.getRandomValues(bytes)
   return 'sk_live_' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')

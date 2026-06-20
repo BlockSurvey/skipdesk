@@ -24,12 +24,14 @@
     "test:e2e": "node tests/e2e.mjs",
     "test:e2e:advanced": "node tests/e2e-advanced.mjs",
     "test:e2e:identity": "node tests/e2e-identity.mjs",
+    "test:e2e:auth": "node tests/e2e-auth.mjs",
     "test:register": "node tests/register.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "agents": "^0.0.95",
     "drizzle-orm": "^0.36.4",
+    "jose": "^6.2.3",
     "next": "^14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

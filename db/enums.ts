@@ -42,7 +42,8 @@ export const APPOINTMENT_STATUSES = [
 ] as const
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number]
 
-export const USER_ROLES = ['admin', 'agent', 'viewer'] as const
+// 'owner' = the account that signed up and owns the business (single-owner model).
+export const USER_ROLES = ['owner', 'admin', 'agent', 'viewer'] as const
 export type UserRole = (typeof USER_ROLES)[number]
 
 /** API-key scopes. Machine callers (voice platform, MCP) get a subset of these. */

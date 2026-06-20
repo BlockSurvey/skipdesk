@@ -1,5 +1,6 @@
-import { notFound } from 'next/navigation'
-import { getBusinesses, getDashboard, WORKER_BASE } from '@/lib/api'
+import { redirect } from 'next/navigation'
+import { getMyDashboard, WORKER_BASE } from '@/lib/api'
+import { getSession } from '@/lib/auth-server'
 import { AppShell } from '@/components/AppShell'
 import { CalendarBoard } from '@/components/CalendarBoard'
 import { CallsFeed } from '@/components/CallsFeed'
@@ -9,14 +10,19 @@ import { ClientOnly, Skeleton } from '@/components/ClientOnly'
 
 export const dynamic = 'force-dynamic'
 
-export default async function BusinessPage({ params }: { params: { id: string } }) {
-  const [data, businesses] = await Promise.all([getDashboard(params.id), getBusinesses().catch(() => [])])
-  if (!data) notFound()
+export default async function DashboardPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  // Source of truth is the worker, not the (stateless, possibly stale) token's
+  // `onboarded` claim — so a token issued before onboarding can't trap the user.
+  const data = await getMyDashboard()
+  if (!data) redirect('/onboarding')
   const { business, kpis, charts } = data
   const tz = business.timezone
 
   return (
-    <AppShell business={business} businesses={businesses} mcpUrl={`${WORKER_BASE}/mcp`}>
+    <AppShell business={business} user={session.user} mcpUrl={`${WORKER_BASE}/mcp`}>
       {/* Overview */}
       <section id="overview" className="scroll-mt-20 animate-rise">
         <div className="flex items-end justify-between">
@@ -66,7 +72,7 @@ export default async function BusinessPage({ params }: { params: { id: string } 
         </Card>
       </section>
 
-      {/* Callers + Leads */}
+      {/* Callers */}
       <section id="callers" className="mt-8 scroll-mt-20">
         <SectionHead title="Who reached out" desc={`${data.calls.length} calls — tap any to read its summary and transcript.`} />
         <Card>
@@ -76,6 +82,7 @@ export default async function BusinessPage({ params }: { params: { id: string } 
         </Card>
       </section>
 
+      {/* Leads */}
       <section id="leads" className="mt-8 scroll-mt-20">
         <SectionHead title="Leads to follow up" desc={`${data.leads.length} captured — what the agent couldn’t close on the call.`} />
         <Card>
@@ -86,7 +93,7 @@ export default async function BusinessPage({ params }: { params: { id: string } 
       </section>
 
       <footer className="mt-10 border-t border-line pt-5 text-xs text-faint">
-        Data via Skip Desk MCP · timezone {tz}
+        Data via Skip Desk · timezone {tz}
       </footer>
     </AppShell>
   )

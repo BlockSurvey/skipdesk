@@ -3,15 +3,6 @@
 export const WORKER_BASE =
   process.env.NEXT_PUBLIC_MCP_BASE ?? 'https://skip-desk-mcp.sweet-night-5b17.workers.dev'
 
-export type BusinessSummary = {
-  id: string
-  name: string
-  slug: string
-  timezone: string
-  status: string
-  counts: { calls: number; leads: number; appointments: number }
-}
-
 export type Kpis = {
   totalCalls: number
   appointmentsBooked: number
@@ -74,15 +65,35 @@ export type Dashboard = {
   hours: { dayOfWeek: number; openTime: string | null; closeTime: string | null; closed: boolean }[]
 }
 
-export async function getBusinesses(): Promise<BusinessSummary[]> {
-  const res = await fetch(`${WORKER_BASE}/api/businesses`, { cache: 'no-store' })
-  if (!res.ok) throw new Error(`businesses ${res.status}`)
-  return (await res.json()).businesses
+export type HoursRow = { id?: string; day_of_week: number; open_time: string | null; close_time: string | null; closed: boolean }
+export type FaqRow = { id?: string; question: string; answer: string }
+export type EscalationRow = { id?: string; name: string; role: string | null; phone: string | null; email: string | null }
+
+export type BusinessConfig = {
+  business: {
+    id: string; name: string; slug: string; timezone: string; status: string
+    industry: string | null; phone: string | null; address: string | null
+    agentName: string | null; greeting: string | null; defaultAppointmentMinutes: number
+  }
+  hours: { dayOfWeek: number; openTime: string | null; closeTime: string | null; closed: boolean }[]
+  faqs: { id: string; question: string; answer: string }[]
+  escalation: { id: string; name: string; role: string | null; phone: string | null; email: string | null }[]
+  api_key: { name: string; created_at: string; revoked: boolean } | null
 }
 
-export async function getDashboard(id: string): Promise<Dashboard | null> {
-  const res = await fetch(`${WORKER_BASE}/api/businesses/${id}/dashboard`, { cache: 'no-store' })
-  if (res.status === 404) return null
+/** Authed dashboard for the logged-in owner's business (server-side; uses the session cookie). */
+export async function getMyDashboard(): Promise<Dashboard | null> {
+  const { workerFetch } = await import('./auth-server')
+  const res = await workerFetch('/api/me/dashboard')
+  if (res.status === 401 || res.status === 409) return null
   if (!res.ok) throw new Error(`dashboard ${res.status}`)
+  return res.json()
+}
+
+/** Authed full config (profile + hours + faqs + escalation + key meta) for Settings. */
+export async function getMyConfig(): Promise<BusinessConfig | null> {
+  const { workerFetch } = await import('./auth-server')
+  const res = await workerFetch('/api/me/config')
+  if (!res.ok) return null
   return res.json()
 }

@@ -1,10 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import type { BusinessSummary } from '@/lib/api'
 import { Brand } from './Brand'
-import { BusinessSwitcher } from './BusinessSwitcher'
 
 type Section = { id: string; label: string; icon: React.ReactNode }
 
@@ -17,17 +16,19 @@ const NAV: Section[] = [
 
 export function AppShell({
   business,
-  businesses,
+  user,
   mcpUrl,
   children,
 }: {
   business: { id: string; name: string; slug: string; timezone: string }
-  businesses: BusinessSummary[]
+  user: { email: string; name: string | null }
   mcpUrl: string
   children: React.ReactNode
 }) {
+  const router = useRouter()
   const [active, setActive] = useState('overview')
   const [copied, setCopied] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -43,33 +44,38 @@ export function AppShell({
     return () => obs.disconnect()
   }, [])
 
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+    router.refresh()
+  }
+
   const activeLabel = NAV.find((n) => n.id === active)?.label ?? 'Overview'
 
   return (
     <div className="min-h-screen">
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-bg">
-        <div className="px-4 pb-3 pt-5">
+        <div className="px-4 pb-4 pt-5">
           <Brand small />
         </div>
-        <div className="px-3">
-          <Link href="/" className="mb-2 flex items-center gap-1.5 px-1 text-xs text-faint transition hover:text-ink">
-            <span className="text-sm leading-none">‹</span> Back to businesses
-          </Link>
-          <BusinessSwitcher businesses={businesses} currentId={business.id} variant="sidebar" />
-        </div>
 
-        <nav className="mt-5 flex-1 px-3">
-          <div className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wider text-faint">This business</div>
+        <nav className="flex-1 px-3">
+          <div className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wider text-faint">Dashboard</div>
           {NAV.map((s) => (
             <a key={s.id} href={`#${s.id}`} data-active={active === s.id} className="navi" onClick={() => setActive(s.id)}>
               <span className="text-faint">{s.icon}</span>
               {s.label}
             </a>
           ))}
+          <div className="my-3 h-px bg-line" />
+          <Link href="/settings" className="navi">
+            <span className="text-faint"><IconGear /></span>
+            Settings
+          </Link>
         </nav>
 
-        <div className="border-t border-line p-3">
+        <div className="space-y-2 border-t border-line p-3">
           <button
             onClick={() => {
               navigator.clipboard.writeText(mcpUrl)
@@ -84,6 +90,26 @@ export function AppShell({
             </span>
             <span className="text-[11px] text-faint">{copied ? 'copied' : 'copy'}</span>
           </button>
+
+          {/* Account */}
+          <div className="relative">
+            <button onClick={() => setMenuOpen((o) => !o)} className="navi w-full justify-between">
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-white">
+                  {(user.name ?? user.email).slice(0, 1).toUpperCase()}
+                </span>
+                <span className="truncate">{user.name ?? user.email}</span>
+              </span>
+              <span className="text-faint">⋯</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute bottom-full left-0 mb-1 w-full overflow-hidden rounded-lg border border-line bg-panel shadow-lg">
+                <div className="border-b border-line px-3 py-2 text-[11px] text-faint">{user.email}</div>
+                <Link href="/settings" className="block px-3 py-2 text-sm text-muted transition hover:bg-panel2 hover:text-ink">Settings</Link>
+                <button onClick={logout} className="block w-full px-3 py-2 text-left text-sm text-rose transition hover:bg-panel2">Log out</button>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -98,10 +124,7 @@ export function AppShell({
               <span className="h-1.5 w-1.5 rounded-full bg-teal" /> Active
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden font-mono text-xs text-faint sm:inline">{business.timezone}</span>
-            <Link href="/register" className="btn btn-primary">+ New business</Link>
-          </div>
+          <span className="hidden font-mono text-xs text-faint sm:inline">{business.timezone}</span>
         </header>
         <main className="px-7 py-7">{children}</main>
       </div>
@@ -123,4 +146,7 @@ function IconUsers() {
 }
 function IconLink() {
   return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.5 9.5l3-3M5.5 7L4 8.5a2.1 2.1 0 003 3L8.5 10M10.5 9L12 7.5a2.1 2.1 0 00-3-3L7.5 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+}
+function IconGear() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.3" /><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
 }

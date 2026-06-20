@@ -25,27 +25,6 @@ const json = (data: unknown, status = 200) =>
 const daysAgoIso = (n: number) => new Date(Date.now() - n * 86400000).toISOString()
 const dayKey = (iso: string | null) => (iso ? iso.slice(0, 10) : null)
 
-export async function listBusinesses(env: Env): Promise<Response> {
-  const db = createDb(env.DB)
-  const rows = await db.query.businesses.findMany({ orderBy: desc(businesses.createdAt) })
-  const out = []
-  for (const b of rows) {
-    out.push({
-      id: b.id,
-      name: b.name,
-      slug: b.slug,
-      timezone: b.timezone,
-      status: b.status,
-      counts: {
-        calls: await db.$count(calls, eq(calls.businessId, b.id)),
-        leads: await db.$count(leads, eq(leads.businessId, b.id)),
-        appointments: await db.$count(appointments, eq(appointments.businessId, b.id)),
-      },
-    })
-  }
-  return json({ businesses: out })
-}
-
 export async function businessDashboard(env: Env, id: string): Promise<Response> {
   const db = createDb(env.DB)
   const business = await db.query.businesses.findFirst({ where: eq(businesses.id, id) })
@@ -126,10 +105,3 @@ export async function businessDashboard(env: Env, id: string): Promise<Response>
   })
 }
 
-export function handleDashboardApi(request: Request, env: Env, url: URL): Response | Promise<Response> {
-  if (request.method === 'OPTIONS') return new Response(null, { headers: CORS })
-  if (url.pathname === '/api/businesses') return listBusinesses(env)
-  const m = url.pathname.match(/^\/api\/businesses\/([^/]+)\/dashboard$/)
-  if (m) return businessDashboard(env, decodeURIComponent(m[1]!))
-  return json({ error: 'not found' }, 404)
-}
