@@ -171,16 +171,21 @@ async function ingest(env: Env, db: Db, doc: Document): Promise<void> {
     const chunks = chunkMarkdown(markdown)
     if (chunks.length === 0) throw new Error('no extractable text')
     const vectors = await embedTexts(env.AI, chunks)
-    await db.insert(kbChunks).values(
-      chunks.map((text, i) => ({
-        businessId: doc.businessId,
-        documentId: doc.id,
-        chunkIndex: i,
-        text,
-        embedding: vectors[i]!,
-        charCount: text.length,
-      })),
-    )
+    const rows = chunks.map((text, i) => ({
+      businessId: doc.businessId,
+      documentId: doc.id,
+      chunkIndex: i,
+      text,
+      embedding: vectors[i]!,
+      charCount: text.length,
+    }))
+    // D1 caps a statement at 100 bound parameters. Each row binds 8 columns
+    // (id, business_id, document_id, chunk_index, text, embedding, char_count,
+    // created_at), so insert in batches of 10 (≈80 params) to stay well under it.
+    const INSERT_BATCH = 10
+    for (let i = 0; i < rows.length; i += INSERT_BATCH) {
+      await db.insert(kbChunks).values(rows.slice(i, i + INSERT_BATCH))
+    }
     await db
       .update(documents)
       .set({ status: 'ready', chunkCount: chunks.length, error: null, updatedAt: new Date().toISOString() })

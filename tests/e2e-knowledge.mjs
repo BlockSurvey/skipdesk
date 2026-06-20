@@ -15,6 +15,14 @@ const check = (n, c, d = '') => { if (c) { pass++; console.log(`  ✓ ${n}`) } e
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const DOC_NAME = `skipdesk-pricing-${TS}.txt`
+// Build a document big enough to chunk into many pieces — this exercises the
+// batched kb_chunks insert (D1 caps a statement at 100 bound params, so a single
+// bulk insert of ~50 chunks would fail). The two facts below must survive chunking.
+const FILLER = Array.from({ length: 60 }, (_, i) =>
+  `Section ${i + 1}. Skip Desk handles inbound calls for clinics and answers routine ` +
+  `questions about hours, directions, and services without keeping callers on hold. ` +
+  `Every interaction is logged for the front desk to review later.`,
+)
 const DOC_TEXT = [
   'Skip Desk Premium Plan',
   '',
@@ -24,6 +32,8 @@ const DOC_TEXT = [
   'The Starter plan is $99 per month and covers business hours only (Monday to Friday).',
   '',
   'Refund policy: customers receive a full refund within 30 days of purchase, no questions asked.',
+  '',
+  ...FILLER.flatMap((p) => [p, '']),
 ].join('\n')
 
 async function req(method, path, { token, body } = {}) {
@@ -96,7 +106,8 @@ async function main() {
   }
   console.log('')
   check('document reached ready', doc?.status === 'ready', `status=${doc?.status} error=${doc?.error ?? ''}`)
-  check('chunks were produced', (doc?.chunk_count ?? 0) > 0, `chunk_count=${doc?.chunk_count}`)
+  // >12 chunks forces the insert to span multiple D1 batches (100-param cap).
+  check('many chunks produced (multi-batch insert)', (doc?.chunk_count ?? 0) > 12, `chunk_count=${doc?.chunk_count}`)
 
   // D. Agent search retrieves the fact (MCP, owner A's key)
   console.log('\nD. search_knowledge_base via MCP (owner A)')
