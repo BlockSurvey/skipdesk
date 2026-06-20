@@ -143,8 +143,33 @@ Rather than clicking the dashboard, the shared assistant (`a07fbcb4-…`) was co
 the webhook + `server.secret` = `VAPI_WEBHOOK_SECRET`; `serverMessages: ["end-of-call-report"]`;
 `analysisPlan.structuredDataPlan` = `{enabled, schema:{fullName,phone,reason,preferredTime,urgency,escalate}}`;
 `firstMessage` = `{{GREETING}}`; and a "Business context" block appended to the system prompt that
-references `{{BUSINESS_NAME}}/{{AGENT_NAME}}/{{BUSINESS_HOURS}}/{{TIMEZONE}}/{{FAQ_SUMMARY}}`. The
+references `{{BUSINESS_NAME}}/{{AGENT_NAME}}/{{BUSINESS_HOURS}}/{{TIMEZONE}}/{{FAQ_SUMMARY}}` plus the
+**clock variables** `{{CURRENT_DATE}}/{{CURRENT_TIME}}/{{CURRENT_DATETIME}}`. The
 existing model + tool (`toolIds`) were preserved. (Re-run by GETting the assistant, merging, PATCHing.)
+
+### Timezone boundary (the date-grounding rule — fixes wrong-weekday drift)
+
+The business timezone is the **single authoritative clock**. The LLM must never compute weekdays or
+convert UTC itself (it drifts — e.g. calling the 24th "Monday" when the 22nd is). Two guardrails:
+
+- **Grounding (per call):** `/widget/config` injects `CURRENT_DATE` ("Monday, June 22, 2026"),
+  `CURRENT_TIME`, `CURRENT_DATETIME`, all rendered server-side in `{{TIMEZONE}}` (`buildVariableValues`,
+  `widget.ts`). The system prompt MUST anchor relative dates to these.
+- **Spoken labels (per tool):** every date-returning MCP tool now returns a ready-to-speak string in
+  the business tz — `check_availability` → `today` + each slot's `label`; `book_appointment` /
+  `get_appointment` / `list_appointments` / `reschedule_appointment` → `when` (+ `timezone`). The agent
+  reads these **verbatim** and never re-derives a date from a raw `starts_at`/UTC value.
+
+**Required system-prompt block** (append to the Business-context section):
+
+```
+Today is {{CURRENT_DATE}} and the current local time is {{CURRENT_TIME}} ({{TIMEZONE}}).
+All dates and times are in {{TIMEZONE}} — the business's local time. NEVER calculate a
+weekday or convert a timezone yourself; you are bad at it and will state the wrong day.
+- Resolve relative dates ("today", "tomorrow", "next Monday") against {{CURRENT_DATE}}.
+- When offering or confirming a slot, read back the tool's `label`/`when`/`today` field
+  exactly as given (e.g. "Monday, June 22 at 9:00 AM"). Do not restate it from raw timestamps.
+```
 
 The equivalent manual steps, if ever needed:
 1. Assistant → **Server / Messaging URL** = `https://skip-desk-mcp.sweet-night-5b17.workers.dev/api/v1/webhooks/vapi`,
@@ -152,8 +177,9 @@ The equivalent manual steps, if ever needed:
 2. Assistant → **Analysis / Structured Output** schema: `{ fullName, phone, reason, preferredTime?,
    urgency?(low|normal|high), escalate?(bool) }` so `end-of-call-report.analysis.structuredData` is populated.
 3. System prompt: keep `{{BUSINESS_NAME}}`/`{{AGENT_NAME}}`; add references to `{{GREETING}}`,
-   `{{BUSINESS_HOURS}}`, `{{FAQ_SUMMARY}}`. Use them to answer info questions and to capture a lead
-   when it can't help.
+   `{{BUSINESS_HOURS}}`, `{{FAQ_SUMMARY}}`, and the clock block above
+   (`{{CURRENT_DATE}}/{{CURRENT_TIME}}/{{TIMEZONE}}`). Use them to answer info questions and to
+   capture a lead when it can't help.
 4. Confirm the assistant's **public key** and **id** match the worker's `VAPI_PUBLIC_KEY` / `VAPI_ASSISTANT_ID`.
 
 ## Testing
