@@ -1,0 +1,11 @@
+name = "skip-desk"
+compatibility_date = "2026-06-19"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare D1 binding. `database_id` is printed by `wrangler d1 create skip-desk-db`
+# (also paste it into .env as CLOUDFLARE_DATABASE_ID for drizzle-kit).
+[[d1_databases]]
+binding = "DB"
+database_name = "skip-desk-db"
+database_id = "a499fc75-63a9-40e7-93c2-45a08b4d9299"
+migrations_dir = "db/migrations"

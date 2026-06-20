@@ -1,0 +1,53 @@
+{
+  "name": "skip-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-tenant voice AI front-desk platform — Cloudflare D1 data layer.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "d1:create": "wrangler d1 create skip-desk-db",
+    "d1:migrate": "wrangler d1 migrations apply skip-desk-db --remote",
+    "d1:seed": "wrangler d1 execute skip-desk-db --remote --file db/seed.sql",
+    "mcp:deploy": "wrangler deploy -c workers/mcp/wrangler.toml",
+    "mcp:dev": "wrangler dev -c workers/mcp/wrangler.toml",
+    "mcp:tail": "wrangler tail -c workers/mcp/wrangler.toml",
+    "typecheck": "tsc --noEmit -p workers/mcp/tsconfig.json",
+    "test:setup": "wrangler d1 execute skip-desk-db --remote --file tests/fixtures-setup.sql",
+    "test:teardown": "wrangler d1 execute skip-desk-db --remote --file tests/fixtures-teardown.sql",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:e2e:advanced": "node tests/e2e-advanced.mjs",
+    "test:e2e:identity": "node tests/e2e-identity.mjs",
+    "test:register": "node tests/register.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "agents": "^0.0.95",
+    "drizzle-orm": "^0.36.4",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.13.3",
+    "zod": "^3.24.1",
+    "zod-to-json-schema": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.28.1",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.91.0"
+  }
+}

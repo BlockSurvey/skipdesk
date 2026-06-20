@@ -1,0 +1,19 @@
+name = "skip-desk-mcp"
+main = "src/index.ts"
+compatibility_date = "2026-06-19"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 — the same database the schema/migrations live in (db/).
+[[d1_databases]]
+binding = "DB"
+database_name = "skip-desk-db"
+database_id = "a499fc75-63a9-40e7-93c2-45a08b4d9299"
+
+# Durable Object that backs the McpAgent session (required by the Agents SDK).
+[[durable_objects.bindings]]
+name = "MCP_OBJECT"
+class_name = "SkipDeskMCP"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SkipDeskMCP"]
