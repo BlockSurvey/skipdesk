@@ -17,6 +17,8 @@ export const DEMO_BUSINESS_ID = 'd53a9e4e-d775-4765-8bcd-bbdd8f8276cb'
 
 export type ToolCtx = {
   db: Db
+  /** Workers AI binding — used by knowledge-base tools to embed the query. */
+  ai: Ai
   businessId: string
   scopes: ApiScope[]
 }

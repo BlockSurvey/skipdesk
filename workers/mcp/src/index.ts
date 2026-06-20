@@ -21,6 +21,7 @@ import { buildRegistry, handleMcp } from './mcp'
 import { handleRegister } from './register'
 import { handleAuth } from './authRoutes'
 import { handleAccountApi, handleOnboarding } from './account'
+import { handleDocumentsApi } from './documents'
 
 export type Env = {
   DB: D1Database
@@ -42,6 +43,7 @@ export class SkipDeskMCP extends McpAgent<Env, unknown, Props> {
   async init() {
     const getCtx = (): ToolCtx => ({
       db: createDb(this.env.DB),
+      ai: this.env.AI,
       businessId: this.props?.businessId ?? DEMO_BUSINESS_ID,
       scopes: this.props?.scopes ?? [...API_SCOPES],
     })
@@ -79,6 +81,11 @@ export default {
     }
     if (url.pathname === '/onboarding') {
       return handleOnboarding(request, env, url.origin)
+    }
+    // Knowledge-base document routes — more specific, so matched before the
+    // generic /api/me handler below.
+    if (url.pathname.startsWith('/api/me/documents') || url.pathname === '/api/me/knowledge/search') {
+      return handleDocumentsApi(request, env, url, ctx)
     }
     if (url.pathname.startsWith('/api/me')) {
       return handleAccountApi(request, env, url)

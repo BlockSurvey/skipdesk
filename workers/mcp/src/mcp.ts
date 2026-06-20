@@ -17,6 +17,7 @@ import { registerAppointmentTools } from './tools/appointments'
 import { registerCallTools } from './tools/calls'
 import { registerEscalationTools } from './tools/escalation'
 import { registerInfoTools } from './tools/info'
+import { registerKnowledgeTools } from './tools/knowledge'
 import { registerLeadTools } from './tools/leads'
 
 export function buildRegistry(): ToolDef[] {
@@ -27,6 +28,7 @@ export function buildRegistry(): ToolDef[] {
   registerAppointmentTools(def)
   registerEscalationTools(def)
   registerCallTools(def)
+  registerKnowledgeTools(def)
   return tools
 }
 
@@ -37,7 +39,7 @@ const TOOLS_LIST = REGISTRY.map((t) => ({
   inputSchema: zodToJsonSchema(z.object(t.shape), { $refStrategy: 'none' }),
 }))
 
-type Env = { DB: D1Database }
+type Env = { DB: D1Database; AI: Ai }
 
 const CORS: Record<string, string> = {
   'access-control-allow-origin': '*',
@@ -64,6 +66,7 @@ export async function handleMcp(request: Request, env: Env, principal: Principal
 
   const ctx: ToolCtx = {
     db: createDb(env.DB),
+    ai: env.AI,
     businessId: principal?.businessId ?? DEMO_BUSINESS_ID,
     scopes: principal?.scopes ?? [...API_SCOPES],
   }
