@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 const SESSION_COOKIE = 'sd_session'
-const PROTECTED = ['/dashboard', '/settings', '/onboarding']
+const PROTECTED = ['/dashboard', '/settings', '/knowledge', '/onboarding']
 const AUTH_PAGES = ['/login', '/signup']
 
 /**
@@ -40,5 +40,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/settings/:path*', '/onboarding', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/settings/:path*', '/knowledge/:path*', '/onboarding', '/login', '/signup'],
 }

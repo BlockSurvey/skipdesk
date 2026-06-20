@@ -76,6 +76,26 @@ export const URGENCY_COLOR: Record<string, string> = {
   low: 'var(--faint)',
 }
 
+export const DOC_STATUS_LABEL: Record<string, string> = {
+  pending: 'Pending',
+  processing: 'Processing',
+  ready: 'Ready',
+  failed: 'Failed',
+}
+
+export const DOC_STATUS_COLOR: Record<string, string> = {
+  pending: 'var(--faint)',
+  processing: 'var(--amber)',
+  ready: 'var(--teal)',
+  failed: 'var(--rose)',
+}
+
+export function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function initials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('')
 }

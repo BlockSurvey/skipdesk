@@ -97,3 +97,24 @@ export async function getMyConfig(): Promise<BusinessConfig | null> {
   if (!res.ok) return null
   return res.json()
 }
+
+export type DocumentRow = {
+  id: string
+  filename: string
+  title: string | null
+  content_type: string
+  size_bytes: number
+  status: string
+  error: string | null
+  chunk_count: number
+  created_at: string
+  updated_at: string
+}
+
+/** Authed list of the owner's knowledge-base documents (server-side, session cookie). */
+export async function getMyDocuments(): Promise<DocumentRow[]> {
+  const { workerFetch } = await import('./auth-server')
+  const res = await workerFetch('/api/me/documents')
+  if (!res.ok) return []
+  return (await res.json()).documents ?? []
+}
