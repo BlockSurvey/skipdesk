@@ -18,6 +18,16 @@ bucket_name = "skip-desk-docs"
 [ai]
 binding = "AI"
 
+# Web voice widget (Vapi). The assistant id is non-secret (it's in the dashboard URL),
+# so it lives here as a plain var. VAPI_PUBLIC_KEY and VAPI_WEBHOOK_SECRET are set as
+# secrets (`wrangler secret put …`): the public key is returned to the browser by
+# /widget/config on purpose, but kept out of git; the webhook secret must stay secret.
+[vars]
+VAPI_ASSISTANT_ID = "a07fbcb4-5b92-4cb1-8606-b8a50af869ad"
+# Shared platform inbound number (E.164), bound to the same assistant in Vapi.
+# Per-business numbers live in the phone_numbers table and override this when present.
+VAPI_PHONE_NUMBER = "+18052193184"
+
 # Durable Object that backs the McpAgent session (required by the Agents SDK).
 [[durable_objects.bindings]]
 name = "MCP_OBJECT"

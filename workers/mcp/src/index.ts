@@ -22,6 +22,7 @@ import { handleRegister } from './register'
 import { handleAuth } from './authRoutes'
 import { handleAccountApi, handleOnboarding } from './account'
 import { handleDocumentsApi } from './documents'
+import { handleVapiWebhook, handleWidgetConfig } from './widget'
 
 export type Env = {
   DB: D1Database
@@ -32,6 +33,14 @@ export type Env = {
   DOCS: R2Bucket
   /** Workers AI binding — toMarkdown conversion + bge text embeddings. */
   AI: Ai
+  /** Vapi web voice widget — public assistant key (browser-safe by design). */
+  VAPI_PUBLIC_KEY?: string
+  /** Vapi assistant id the widget connects to (shared across tenants). */
+  VAPI_ASSISTANT_ID?: string
+  /** Shared secret Vapi sends on server messages (verifies the end-of-call webhook). */
+  VAPI_WEBHOOK_SECRET?: string
+  /** Shared inbound phone number (E.164) shown until each business gets its own. */
+  VAPI_PHONE_NUMBER?: string
 }
 
 type Props = { businessId?: string; scopes?: ApiScope[] }
@@ -74,6 +83,15 @@ export default {
     }
     if (url.pathname === '/register') {
       return handleRegister(request, env, url.origin)
+    }
+    // ── Web voice widget — public config + signed Vapi webhook ─────────────────
+    // Both are matched BEFORE the API-key/tenant block: /widget/config is public,
+    // and the webhook authenticates with the shared X-Vapi-Secret, not a Bearer key.
+    if (url.pathname === '/widget/config') {
+      return handleWidgetConfig(request, env, url)
+    }
+    if (url.pathname === '/api/v1/webhooks/vapi') {
+      return handleVapiWebhook(request, env)
     }
     // ── Dashboard auth (human owners) — session-cookie / bearer based ──────────
     if (url.pathname.startsWith('/auth/')) {

@@ -26,9 +26,10 @@ import {
 import { sha256Hex } from './auth'
 import { businessDashboard } from './dashboard'
 import { newApiKey, slugify } from './register'
+import { resolvePhoneNumber } from './widget'
 import { issueToken, resolveAuth, sessionToken, type AuthedUser } from './lib/session'
 
-type Env = { DB: D1Database; JWT_PRIVATE_JWK: string }
+type Env = { DB: D1Database; JWT_PRIVATE_JWK: string; VAPI_PUBLIC_KEY?: string; VAPI_ASSISTANT_ID?: string; VAPI_PHONE_NUMBER?: string }
 type Db = ReturnType<typeof createDb>
 
 const CORS = {
@@ -243,6 +244,26 @@ export async function handleAccountApi(request: Request, env: Env, url: URL): Pr
     await db.delete(escalationContacts).where(eq(escalationContacts.businessId, bizId))
     if (rows.length) await db.insert(escalationContacts).values(rows)
     return json({ ok: true, count: rows.length })
+  }
+
+  // ── Web voice widget: read status + embed details / toggle on-off ───────────
+  if (path === '/api/me/widget' && request.method === 'GET') {
+    const biz = await db.query.businesses.findFirst({ where: eq(businesses.id, bizId) })
+    return json({
+      enabled: !!biz?.widgetEnabled,
+      slug: biz?.slug ?? null,
+      hostedPath: biz ? `/talk/${biz.slug}` : null,
+      publicKey: env.VAPI_PUBLIC_KEY ?? null,
+      assistantId: env.VAPI_ASSISTANT_ID ?? null,
+      phoneNumber: await resolvePhoneNumber(db, bizId, env),
+    })
+  }
+
+  if (path === '/api/me/widget/enable' && request.method === 'POST') {
+    const b = (await request.json().catch(() => null)) as { enabled?: boolean } | null
+    if (!b || typeof b.enabled !== 'boolean') return json({ error: 'expected { enabled: boolean }' }, 400)
+    await db.update(businesses).set({ widgetEnabled: b.enabled }).where(eq(businesses.id, bizId))
+    return json({ ok: true, enabled: b.enabled })
   }
 
   if (path === '/api/me/key/rotate' && request.method === 'POST') {

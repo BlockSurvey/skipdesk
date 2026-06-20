@@ -79,6 +79,8 @@ export const businesses = sqliteTable(
     greeting: text('greeting'),
     /** Default appointment length (minutes) when a tool doesn't specify one. */
     defaultAppointmentMinutes: integer('default_appointment_minutes').notNull().default(30),
+    /** Owner has turned on the embeddable web voice widget (Vapi) for this business. */
+    widgetEnabled: integer('widget_enabled', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => ({

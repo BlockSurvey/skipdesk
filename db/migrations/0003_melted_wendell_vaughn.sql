@@ -1,0 +1,1 @@
+ALTER TABLE `businesses` ADD `widget_enabled` integer DEFAULT false NOT NULL;

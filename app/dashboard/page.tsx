@@ -1,11 +1,21 @@
 import { redirect } from 'next/navigation'
-import { getMyDashboard, WORKER_BASE } from '@/lib/api'
+import {
+  getMyConfig,
+  getMyDashboard,
+  getMyDocuments,
+  getMyWidget,
+  getPublicWidgetConfig,
+  WORKER_BASE,
+} from '@/lib/api'
 import { getSession } from '@/lib/auth-server'
-import { AppShell } from '@/components/AppShell'
+import { AppShell, type AppSection } from '@/components/AppShell'
 import { CalendarBoard } from '@/components/CalendarBoard'
 import { CallsFeed } from '@/components/CallsFeed'
 import { LeadsList } from '@/components/LeadsList'
 import { CallsTrend, OutcomeDonut, SentimentSplit } from '@/components/Charts'
+import { KnowledgeManager } from '@/components/KnowledgeManager'
+import { SettingsForm } from '@/components/SettingsForm'
+import { WidgetManager } from '@/components/WidgetManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,83 +23,128 @@ export default async function DashboardPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  // Source of truth is the worker, not the (stateless, possibly stale) token's
-  // `onboarded` claim — so a token issued before onboarding can't trap the user.
+  // Source of truth is the worker, not the (stateless, possibly stale) token's claim.
   const data = await getMyDashboard()
   if (!data) redirect('/onboarding')
   const { business, kpis, charts } = data
   const tz = business.timezone
 
-  return (
-    <AppShell business={business} user={session.user} mcpUrl={`${WORKER_BASE}/mcp`}>
-      {/* Overview */}
-      <section id="overview" className="scroll-mt-20 animate-rise">
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-ink">Overview</h1>
-            <p className="mt-1 text-sm text-muted">Everything your AI front desk captured for {business.name}.</p>
+  // Everything every menu item needs, fetched once and shown inline (master–detail).
+  const [widget, pub, docs, config] = await Promise.all([
+    getMyWidget(),
+    getPublicWidgetConfig(business.slug),
+    getMyDocuments(),
+    getMyConfig(),
+  ])
+
+  const sections: AppSection[] = [
+    {
+      id: 'assistants',
+      label: 'Assistants',
+      group: 'Build',
+      node: <WidgetManager initial={widget} variableValues={pub?.variableValues} />,
+    },
+    {
+      id: 'overview',
+      label: 'Overview',
+      group: 'Workspace',
+      node: (
+        <div>
+          <SectionHead title="Overview" desc={`Everything your AI front desk captured for ${business.name}.`} />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi label="Calls handled" value={kpis.totalCalls} sub="last 60 days" dot="var(--amber)" />
+            <Kpi label="Appointments" value={kpis.appointmentsBooked} sub={`${kpis.appointmentsUpcoming} upcoming`} dot="var(--teal)" />
+            <Kpi label="Conversion" value={`${kpis.conversionRate}%`} sub="calls → booked" dot="var(--steel)" />
+            <Kpi label="Positive sentiment" value={`${kpis.positiveRate}%`} sub="of all calls" dot="var(--teal)" />
+          </div>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1.3fr_1fr_1fr]">
+            <Card title="Call volume" meta="30 days">
+              <CallsTrend data={charts.callsByDay} />
+              <div className="mt-2 flex items-center gap-4 text-xs text-faint">
+                <Legend color="var(--amber)" label="calls" />
+                <Legend color="var(--teal)" label="booked" dashed />
+              </div>
+            </Card>
+            <Card title="Outcomes">
+              <OutcomeDonut data={charts.outcomes} />
+            </Card>
+            <Card title="Sentiment">
+              <div className="flex h-full flex-col justify-between gap-4">
+                <SentimentSplit data={charts.sentiments} />
+                <div className="grid grid-cols-2 gap-3">
+                  <MiniStat label="Open leads" value={kpis.leadsOpen} />
+                  <MiniStat label="Escalations" value={kpis.escalations} accent="var(--rose)" />
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Kpi label="Calls handled" value={kpis.totalCalls} sub="last 60 days" dot="var(--amber)" />
-          <Kpi label="Appointments" value={kpis.appointmentsBooked} sub={`${kpis.appointmentsUpcoming} upcoming`} dot="var(--teal)" />
-          <Kpi label="Conversion" value={`${kpis.conversionRate}%`} sub="calls → booked" dot="var(--steel)" />
-          <Kpi label="Positive sentiment" value={`${kpis.positiveRate}%`} sub="of all calls" dot="var(--teal)" />
+      ),
+    },
+    {
+      id: 'calendar',
+      label: 'Calendar',
+      group: 'Workspace',
+      node: (
+        <div>
+          <SectionHead title="Appointment calendar" desc="Days with bookings are dotted by status — pick a day to see who’s coming in." />
+          <Card>
+            <CalendarBoard appointments={data.appointments} tz={tz} />
+          </Card>
         </div>
-
-        <div className="mt-3 grid gap-3 lg:grid-cols-[1.3fr_1fr_1fr]">
-          <Card title="Call volume" meta="30 days">
-            <CallsTrend data={charts.callsByDay} />
-            <div className="mt-2 flex items-center gap-4 text-xs text-faint">
-              <Legend color="var(--amber)" label="calls" />
-              <Legend color="var(--teal)" label="booked" dashed />
-            </div>
+      ),
+    },
+    {
+      id: 'callers',
+      label: 'Callers',
+      group: 'Workspace',
+      node: (
+        <div>
+          <SectionHead title="Who reached out" desc={`${data.calls.length} calls — tap any to read its summary and transcript.`} />
+          <Card>
+            <CallsFeed calls={data.calls} tz={tz} />
           </Card>
-          <Card title="Outcomes">
-            <OutcomeDonut data={charts.outcomes} />
+        </div>
+      ),
+    },
+    {
+      id: 'leads',
+      label: 'Leads',
+      group: 'Workspace',
+      node: (
+        <div>
+          <SectionHead title="Leads to follow up" desc={`${data.leads.length} captured — what the agent couldn’t close on the call.`} />
+          <Card>
+            <LeadsList leads={data.leads} />
           </Card>
-          <Card title="Sentiment">
-            <div className="flex h-full flex-col justify-between gap-4">
-              <SentimentSplit data={charts.sentiments} />
-              <div className="grid grid-cols-2 gap-3">
-                <MiniStat label="Open leads" value={kpis.leadsOpen} />
-                <MiniStat label="Escalations" value={kpis.escalations} accent="var(--rose)" />
+        </div>
+      ),
+    },
+    {
+      id: 'knowledge',
+      label: 'Knowledge',
+      group: 'Manage',
+      node: <KnowledgeManager initialDocs={docs} />,
+    },
+    ...(config
+      ? [
+          {
+            id: 'settings',
+            label: 'Settings',
+            group: 'Manage',
+            node: (
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight text-ink">Settings</h1>
+                <p className="mt-1 text-sm text-muted">Manage your business profile, hours, FAQs, escalation, and API key.</p>
+                <SettingsForm config={config} userEmail={session.user.email} />
               </div>
-            </div>
-          </Card>
-        </div>
-      </section>
+            ),
+          } as AppSection,
+        ]
+      : []),
+  ]
 
-      {/* Calendar */}
-      <section id="calendar" className="mt-8 scroll-mt-20">
-        <SectionHead title="Appointment calendar" desc="Days with bookings are dotted by status — pick a day to see who’s coming in." />
-        <Card>
-          <CalendarBoard appointments={data.appointments} tz={tz} />
-        </Card>
-      </section>
-
-      {/* Callers */}
-      <section id="callers" className="mt-8 scroll-mt-20">
-        <SectionHead title="Who reached out" desc={`${data.calls.length} calls — tap any to read its summary and transcript.`} />
-        <Card>
-          <CallsFeed calls={data.calls} tz={tz} />
-        </Card>
-      </section>
-
-      {/* Leads */}
-      <section id="leads" className="mt-8 scroll-mt-20">
-        <SectionHead title="Leads to follow up" desc={`${data.leads.length} captured — what the agent couldn’t close on the call.`} />
-        <Card>
-          <LeadsList leads={data.leads} />
-        </Card>
-      </section>
-
-      <footer className="mt-10 border-t border-line pt-5 text-xs text-faint">
-        Data via Skip Desk · timezone {tz}
-      </footer>
-    </AppShell>
-  )
+  return <AppShell business={business} user={session.user} mcpUrl={`${WORKER_BASE}/mcp`} sections={sections} />
 }
 
 function Kpi({ label, value, sub, dot }: { label: string; value: number | string; sub: string; dot: string }) {
@@ -131,8 +186,8 @@ function Card({ title, meta, children }: { title?: string; meta?: string; childr
 function SectionHead({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="mb-4">
-      <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
-      <p className="mt-0.5 text-sm text-muted">{desc}</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+      <p className="mt-1 text-sm text-muted">{desc}</p>
     </div>
   )
 }

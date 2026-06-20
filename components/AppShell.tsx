@@ -5,44 +5,68 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Brand } from './Brand'
 
-type Section = { id: string; label: string; icon: React.ReactNode }
+/** One selectable menu item; `node` is the content shown in the right pane. */
+export type AppSection = { id: string; label: string; group: string; node: React.ReactNode }
 
-const NAV: Section[] = [
-  { id: 'overview', label: 'Overview', icon: <IconGrid /> },
-  { id: 'calendar', label: 'Calendar', icon: <IconCalendar /> },
-  { id: 'callers', label: 'Callers', icon: <IconPhone /> },
-  { id: 'leads', label: 'Leads', icon: <IconUsers /> },
-]
+const ICONS: Record<string, React.ReactNode> = {
+  assistants: <IconBot />,
+  overview: <IconGrid />,
+  calendar: <IconCalendar />,
+  callers: <IconPhone />,
+  leads: <IconUsers />,
+  knowledge: <IconDoc />,
+  settings: <IconGear />,
+}
 
+/**
+ * Master–detail shell: a persistent left menu, and a right pane that shows ONLY the
+ * selected section. Switching is client-side (no navigation), so the whole product
+ * lives on one clean page.
+ */
 export function AppShell({
   business,
   user,
   mcpUrl,
-  children,
+  sections,
 }: {
   business: { id: string; name: string; slug: string; timezone: string }
   user: { email: string; name: string | null }
   mcpUrl: string
-  children: React.ReactNode
+  sections: AppSection[]
 }) {
   const router = useRouter()
-  const [active, setActive] = useState('overview')
+  const [active, setActive] = useState(sections[0]?.id ?? '')
   const [copied, setCopied] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navOpen, setNavOpen] = useState(false) // mobile drawer
 
+  // Reflect the active tab in the URL hash (deep-linkable, shareable) and restore it
+  // on load / when the hash changes (e.g. browser back/forward, a pasted link).
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setActive(e.target.id)
-      },
-      { rootMargin: '-45% 0px -50% 0px' },
-    )
-    for (const s of NAV) {
-      const el = document.getElementById(s.id)
-      if (el) obs.observe(el)
+    const apply = () => {
+      const h = decodeURIComponent(window.location.hash.replace('#', ''))
+      if (h && sections.some((s) => s.id === h)) setActive(h)
     }
-    return () => obs.disconnect()
-  }, [])
+    apply()
+    window.addEventListener('hashchange', apply)
+    return () => window.removeEventListener('hashchange', apply)
+  }, [sections])
+
+  function select(id: string) {
+    setActive(id)
+    setNavOpen(false)
+    if (typeof window !== 'undefined') history.replaceState(null, '', `#${id}`)
+  }
+
+  // Preserve group order as first encountered in the sections list.
+  const groups: { name: string; items: AppSection[] }[] = []
+  for (const s of sections) {
+    let g = groups.find((x) => x.name === s.group)
+    if (!g) groups.push((g = { name: s.group, items: [] }))
+    g.items.push(s)
+  }
+
+  const activeSection = sections.find((s) => s.id === active) ?? sections[0]
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -50,33 +74,49 @@ export function AppShell({
     router.refresh()
   }
 
-  const activeLabel = NAV.find((n) => n.id === active)?.label ?? 'Overview'
-
   return (
     <div className="min-h-screen">
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-bg">
-        <div className="px-4 pb-4 pt-5">
+      {/* Mobile top bar */}
+      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-bg/90 px-4 backdrop-blur-xl md:hidden">
+        <button onClick={() => setNavOpen(true)} className="rounded-lg border border-line p-2 text-muted" aria-label="Open menu">
+          <IconMenu />
+        </button>
+        <Brand small />
+        <span className="ml-auto truncate text-sm text-muted">{activeSection?.label}</span>
+      </div>
+
+      {/* Backdrop (mobile, when drawer open) */}
+      {navOpen && <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
+
+      {/* Sidebar — static on desktop, slide-in drawer on mobile */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-line bg-bg transition-transform duration-200 md:translate-x-0 ${
+          navOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 pb-4 pt-5">
           <Brand small />
+          <button onClick={() => setNavOpen(false)} className="rounded-lg p-1.5 text-faint md:hidden" aria-label="Close menu">✕</button>
         </div>
 
-        <nav className="flex-1 px-3">
-          <div className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wider text-faint">Dashboard</div>
-          {NAV.map((s) => (
-            <a key={s.id} href={`#${s.id}`} data-active={active === s.id} className="navi" onClick={() => setActive(s.id)}>
-              <span className="text-faint">{s.icon}</span>
-              {s.label}
-            </a>
+        <nav className="flex-1 overflow-y-auto px-3">
+          {groups.map((g, gi) => (
+            <div key={g.name} className={gi === 0 ? '' : 'mt-4'}>
+              <div className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wider text-faint">{g.name}</div>
+              {g.items.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  data-active={active === s.id}
+                  className="navi w-full"
+                  onClick={() => select(s.id)}
+                >
+                  <span className="text-faint">{ICONS[s.id] ?? <IconGrid />}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
           ))}
-          <div className="my-3 h-px bg-line" />
-          <Link href="/knowledge" className="navi">
-            <span className="text-faint"><IconDoc /></span>
-            Knowledge
-          </Link>
-          <Link href="/settings" className="navi">
-            <span className="text-faint"><IconGear /></span>
-            Settings
-          </Link>
         </nav>
 
         <div className="space-y-2 border-t border-line p-3">
@@ -109,7 +149,7 @@ export function AppShell({
             {menuOpen && (
               <div className="absolute bottom-full left-0 mb-1 w-full overflow-hidden rounded-lg border border-line bg-panel shadow-lg">
                 <div className="border-b border-line px-3 py-2 text-[11px] text-faint">{user.email}</div>
-                <Link href="/settings" className="block px-3 py-2 text-sm text-muted transition hover:bg-panel2 hover:text-ink">Settings</Link>
+                <Link href="/" className="block px-3 py-2 text-sm text-muted transition hover:bg-panel2 hover:text-ink">Home</Link>
                 <button onClick={logout} className="block w-full px-3 py-2 text-left text-sm text-rose transition hover:bg-panel2">Log out</button>
               </div>
             )}
@@ -118,19 +158,24 @@ export function AppShell({
       </aside>
 
       {/* Main */}
-      <div className="pl-64">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-line bg-bg/85 px-7 backdrop-blur-xl">
+      <div className="md:pl-64">
+        <header className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-line bg-bg/85 px-7 backdrop-blur-xl md:flex">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-medium text-ink">{business.name}</span>
             <span className="text-faint">/</span>
-            <span className="text-muted">{activeLabel}</span>
+            <span className="text-muted">{activeSection?.label ?? ''}</span>
             <span className="pill ml-2 bg-[color-mix(in_srgb,var(--teal)_12%,transparent)] text-teal">
               <span className="h-1.5 w-1.5 rounded-full bg-teal" /> Active
             </span>
           </div>
           <span className="hidden font-mono text-xs text-faint sm:inline">{business.timezone}</span>
         </header>
-        <main className="px-7 py-7">{children}</main>
+        <main className="px-4 py-6 sm:px-7 sm:py-7">
+          {/* key forces a clean remount per tab → each menu item is its own clean page */}
+          <div key={active} className="animate-rise">
+            {activeSection?.node}
+          </div>
+        </main>
       </div>
     </div>
   )
@@ -156,4 +201,10 @@ function IconGear() {
 }
 function IconDoc() {
   return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 1.5h5L13 5v9a.5.5 0 01-.5.5h-9A.5.5 0 013 14V2a.5.5 0 01.5-.5z" stroke="currentColor" strokeWidth="1.3" /><path d="M9 1.5V5h4M5.5 8.5h5M5.5 11h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+}
+function IconBot() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="5.5" width="10" height="7.5" rx="2" stroke="currentColor" strokeWidth="1.3" /><path d="M8 3v2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /><circle cx="8" cy="2.5" r="1" fill="currentColor" /><circle cx="6.2" cy="9" r="1" fill="currentColor" /><circle cx="9.8" cy="9" r="1" fill="currentColor" /></svg>
+}
+function IconMenu() {
+  return <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2.5 4h11M2.5 8h11M2.5 12h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
 }

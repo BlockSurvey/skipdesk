@@ -1,7 +1,12 @@
 import Link from 'next/link'
 import { Brand } from '@/components/Brand'
+import { TryAgent } from '@/components/TryAgent'
+import { getPublicWidgetConfig } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
+
+// The public agent the landing-page demo talks to (seeded demo tenant w/ hours + FAQs).
+const DEMO_SLUG = 'sunrise-clinic'
 
 const PILLARS = [
   {
@@ -27,7 +32,9 @@ const STEPS = [
   { n: '03', title: 'Point your number at it', body: 'Connect your phone line or voice agent and your front desk is live.' },
 ]
 
-export default function Landing() {
+export default async function Landing() {
+  const demo = await getPublicWidgetConfig(DEMO_SLUG)
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -62,38 +69,18 @@ export default function Landing() {
               conversation into revenue.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/signup" className="btn btn-primary px-5 py-3 text-[15px]">Get started free</Link>
-              <Link href="#how" className="btn px-5 py-3 text-[15px]">See how it works</Link>
+              <a href="#try" className="btn btn-primary px-5 py-3 text-[15px]">🎙 Talk to the agent — live</a>
+              <Link href="/signup" className="btn px-5 py-3 text-[15px]">Get started free</Link>
             </div>
-            <p className="mt-4 text-xs text-faint">No credit card · live in minutes</p>
+            <p className="mt-4 text-xs text-faint">No signup to try · no credit card · live in minutes</p>
 
-            {/* Hero visual */}
-            <div className="mx-auto mt-14 max-w-4xl">
-              <div className="card overflow-hidden p-0 text-left">
-                <div className="flex items-center gap-1.5 border-b border-line bg-panel2 px-4 py-2.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose/60" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber/60" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-teal/60" />
-                  <span className="ml-3 font-mono text-[11px] text-faint">skip-desk · live call</span>
-                </div>
-                <div className="grid gap-4 p-6 md:grid-cols-[1.1fr_1fr]">
-                  <div className="space-y-3">
-                    <Bubble who="Caller" tone="muted">Hi, do you have anything open tomorrow afternoon?</Bubble>
-                    <Bubble who="Skip Desk" tone="ink">Let me check… I have 2:30 or 4:00 PM tomorrow. Which works?</Bubble>
-                    <Bubble who="Caller" tone="muted">2:30 is perfect.</Bubble>
-                    <Bubble who="Skip Desk" tone="ink">Booked you for 2:30 PM. You'll get a confirmation shortly. 🎉</Bubble>
-                  </div>
-                  <div className="rounded-xl border border-line bg-panel2 p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-wider text-faint">Captured automatically</div>
-                    <div className="mt-3 space-y-2.5 text-sm">
-                      <Row k="Outcome" v="Appointment booked" accent="var(--teal)" />
-                      <Row k="When" v="Tomorrow, 2:30 PM" />
-                      <Row k="Caller" v="+1 (415) 555‑0142" mono />
-                      <Row k="Sentiment" v="Positive" accent="var(--teal)" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Live, interactive demo — the conversion centerpiece */}
+            <div id="try" className="mx-auto mt-14 max-w-4xl scroll-mt-24">
+              {demo ? (
+                <TryAgent config={demo} />
+              ) : (
+                <div className="card p-10 text-center text-sm text-muted">The live demo is warming up — please refresh in a moment.</div>
+              )}
             </div>
           </div>
         </section>
@@ -193,24 +180,6 @@ export default function Landing() {
           <span>© {2026} Skip Desk · The AI front desk for small business</span>
         </div>
       </footer>
-    </div>
-  )
-}
-
-function Bubble({ who, tone, children }: { who: string; tone: 'muted' | 'ink'; children: React.ReactNode }) {
-  return (
-    <div className={`rounded-xl border border-line p-3 ${tone === 'ink' ? 'bg-panel' : 'bg-panel2'}`}>
-      <div className="text-[10px] font-medium uppercase tracking-wider text-faint">{who}</div>
-      <div className="mt-1 text-sm text-ink">{children}</div>
-    </div>
-  )
-}
-
-function Row({ k, v, accent, mono }: { k: string; v: string; accent?: string; mono?: boolean }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-faint">{k}</span>
-      <span className={`text-sm ${mono ? 'font-mono' : ''}`} style={accent ? { color: accent } : { color: 'var(--ink)' }}>{v}</span>
     </div>
   )
 }

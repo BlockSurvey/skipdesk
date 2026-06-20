@@ -118,3 +118,43 @@ export async function getMyDocuments(): Promise<DocumentRow[]> {
   if (!res.ok) return []
   return (await res.json()).documents ?? []
 }
+
+// ── Voice widget ──────────────────────────────────────────────────────────────
+
+export type WidgetInfo = {
+  enabled: boolean
+  slug: string | null
+  hostedPath: string | null
+  publicKey: string | null
+  assistantId: string | null
+  phoneNumber: string | null
+}
+
+/** Authed widget status + embed details for the owner's business (session cookie). */
+export async function getMyWidget(): Promise<WidgetInfo | null> {
+  const { workerFetch } = await import('./auth-server')
+  const res = await workerFetch('/api/me/widget')
+  if (!res.ok) return null
+  return res.json()
+}
+
+export type PublicWidgetConfig = {
+  businessId: string
+  slug: string
+  businessName: string
+  enabled: boolean
+  vapiPublicKey: string | null
+  vapiAssistantId: string | null
+  phoneNumber: string | null
+  variableValues: Record<string, string>
+}
+
+/**
+ * PUBLIC widget config for the hosted /talk page — no auth, fetched straight from the
+ * worker. Returns only public-facing info (name, hours, FAQ summary). null if not found.
+ */
+export async function getPublicWidgetConfig(slugOrId: string, by: 'slug' | 'businessId' = 'slug'): Promise<PublicWidgetConfig | null> {
+  const res = await fetch(`${WORKER_BASE}/widget/config?${by}=${encodeURIComponent(slugOrId)}`, { cache: 'no-store' })
+  if (!res.ok) return null
+  return res.json()
+}
