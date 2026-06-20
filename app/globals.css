@@ -87,6 +87,44 @@ body {
   .btn-primary:hover {
     background: #000;
   }
+  /* ghost button — transparent until hover (used by TryAgent/WidgetManager) */
+  .btn-ghost {
+    border-color: transparent;
+    background: transparent;
+  }
+  .btn-ghost:hover {
+    background: var(--panel-2);
+  }
+  /* coral brand button — the high-energy CTA on light surfaces */
+  .btn-brand {
+    border: 1px solid var(--brand);
+    background: var(--brand);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-brand:hover {
+    background: #d63d23;
+  }
+  /* cream button — high-contrast CTA on coral/dark color blocks */
+  .btn-cream {
+    border: 1px solid #fff;
+    background: #fff;
+    color: var(--brand);
+    font-weight: 600;
+  }
+  .btn-cream:hover {
+    background: #fff4f0;
+  }
+  /* outlined light button — secondary CTA on coral/dark color blocks */
+  .btn-outline-light {
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: transparent;
+    color: #fff;
+    font-weight: 500;
+  }
+  .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
 
   /* soft status pill, ElevenLabs-style */
   .pill {
@@ -150,4 +188,300 @@ body {
 }
 .animate-rise {
   animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Landing redesign — "Full Wise energy": oversized type, bold
+   full-bleed colour bands, generous radius, tasteful motion.
+   These are landing-only utilities; the design tokens above are
+   untouched so the dashboard/app surfaces keep their look.
+   ─────────────────────────────────────────────────────────────── */
+
+/* Oversized display type — the single biggest "wow" lever. */
+.text-display {
+  font-size: clamp(2.75rem, 7.5vw, 6.5rem);
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+}
+.text-display-sm {
+  font-size: clamp(2rem, 4.6vw, 3.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  font-weight: 700;
+}
+
+/* Full-bleed band vertical rhythm. */
+.band-pad {
+  padding-top: clamp(4.5rem, 9vw, 8.5rem);
+  padding-bottom: clamp(4.5rem, 9vw, 8.5rem);
+}
+
+/* Hover lift for cards/tiles. */
+.lift {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -20px rgba(17, 17, 17, 0.28);
+}
+
+/* Scroll-reveal — toggled by the <Reveal> client component. */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Animated voice-pulse equalizer (decorative motif on colour bands). */
+@keyframes pulseBar {
+  0%,
+  100% {
+    transform: scaleY(0.42);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.pulse-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: pulseBar 1.6s ease-in-out infinite;
+}
+
+/* Infinite marquee (ICP business-type ribbon). */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 32s linear infinite;
+}
+.marquee-reverse {
+  animation-direction: reverse;
+  animation-duration: 38s;
+}
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+/* Typing caret for the live call console. */
+@keyframes caretBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  vertical-align: -0.12em;
+  margin-left: 1px;
+  background: currentColor;
+  animation: caretBlink 1.05s step-end infinite;
+}
+
+/* Reactive voice waveform bars (call console). */
+@keyframes waveFlex {
+  0%,
+  100% {
+    transform: scaleY(0.22);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.wave-bar {
+  transform-origin: center;
+  animation: waveFlex 0.85s ease-in-out infinite;
+}
+
+/* Top fade-out mask for the scrolling transcript. */
+.fade-top {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 16%);
+  mask-image: linear-gradient(180deg, transparent, #000 16%);
+}
+
+/* Cursor spotlight — a glow that tracks the pointer over a dark band. */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, -200px),
+    var(--spot, rgba(232, 70, 43, 0.18)),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Animatable angle for rotating conic borders. */
+@property --a {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* 3D cursor tilt (TiltCard). */
+.tilt {
+  transform: perspective(950px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease, box-shadow 0.3s ease;
+}
+.tilt:hover {
+  box-shadow: 0 34px 70px -30px rgba(20, 10, 5, 0.42);
+}
+
+/* Drifting aurora blobs — atmosphere on colour bands. */
+@keyframes drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(6%, -5%) scale(1.14);
+  }
+  66% {
+    transform: translate(-5%, 4%) scale(0.92);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+.aurora {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: 0.55;
+}
+.aurora > span {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: soft-light;
+  animation: drift 19s ease-in-out infinite;
+}
+
+/* Rotating conic glow border (revealed on hover). */
+.glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--a), transparent 0deg, var(--glow, #fff) 70deg, transparent 150deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.glow-border:hover::after {
+  opacity: 1;
+  animation: borderSpin 4.5s linear infinite;
+}
+@keyframes borderSpin {
+  to {
+    --a: 360deg;
+  }
+}
+
+/* Soft warm gradient text (kinetic headlines). */
+.text-gradient {
+  background: linear-gradient(96deg, #fff, #ffd7c9 52%, #fff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Coral→rose gradient text for emphasis on light surfaces. */
+.text-gradient-warm {
+  background: linear-gradient(96deg, var(--brand), var(--rose));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Gentle float for hero status chips. */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+.floaty {
+  animation: floaty 4.5s ease-in-out infinite;
+}
+
+/* Drawn-in horizontal connector (how-it-works). */
+@keyframes growLine {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Film-grain overlay for tactile depth. */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
+  .tilt {
+    transform: none !important;
+  }
+  .pulse-bar,
+  .marquee-track,
+  .wave-bar,
+  .caret,
+  .aurora > span,
+  .floaty,
+  .glow-border:hover::after {
+    animation: none;
+  }
 }
