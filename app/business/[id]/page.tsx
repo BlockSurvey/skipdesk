@@ -45,10 +45,12 @@ export default async function BusinessPage({ params }: { params: { id: string } 
             <OutcomeDonut data={charts.outcomes} />
           </Card>
           <Card title="Sentiment">
-            <div className="grid h-full grid-cols-2 gap-3">
-              <div className="col-span-2"><SentimentSplit data={charts.sentiments} /></div>
-              <MiniStat label="Open leads" value={kpis.leadsOpen} />
-              <MiniStat label="Escalations" value={kpis.escalations} accent="var(--rose)" />
+            <div className="flex h-full flex-col justify-between gap-4">
+              <SentimentSplit data={charts.sentiments} />
+              <div className="grid grid-cols-2 gap-3">
+                <MiniStat label="Open leads" value={kpis.leadsOpen} />
+                <MiniStat label="Escalations" value={kpis.escalations} accent="var(--rose)" />
+              </div>
             </div>
           </Card>
         </div>
@@ -114,14 +116,14 @@ function MiniStat({ label, value, accent }: { label: string; value: number; acce
 
 function Card({ title, meta, children }: { title?: string; meta?: string; children: React.ReactNode }) {
   return (
-    <div className="card p-5">
+    <div className="card flex flex-col p-5">
       {title && (
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink">{title}</h3>
           {meta && <span className="text-xs text-faint">{meta}</span>}
         </div>
       )}
-      {children}
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
   )
 }

@@ -12,8 +12,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+    // suppressHydrationWarning: tolerate attributes/nodes injected by browser
+    // extensions (dark-mode, password managers, etc.) before React hydrates —
+    // they mutate the server HTML and would otherwise throw a hydration error.
+    <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>{children}</body>
     </html>
   )
 }

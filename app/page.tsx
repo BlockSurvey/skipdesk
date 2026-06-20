@@ -4,6 +4,13 @@ import { Brand } from '@/components/Brand'
 
 export const dynamic = 'force-dynamic'
 
+/** The value pillars — the three things SkipDesk guarantees on every call. */
+const PILLARS = [
+  { title: 'Heard', body: 'Answers every call instantly, 24/7 — no voicemail, no hold, no missed customer.', dot: 'var(--amber)' },
+  { title: 'Assisted', body: 'Answers questions and books real appointments against live availability.', dot: 'var(--teal)' },
+  { title: 'Guided', body: 'Captures intent as a lead and escalates to your team when it matters.', dot: 'var(--steel)' },
+] as const
+
 export default async function Home() {
   let businesses: BusinessSummary[] = []
   let error = false
@@ -22,13 +29,33 @@ export default async function Home() {
 
       <main className="mx-auto max-w-6xl px-6">
         <section className="animate-rise pt-16">
-          <span className="pill bg-panel2 text-muted">Front desk intelligence</span>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold leading-[1.1] tracking-tight text-ink md:text-5xl">
-            Every call your AI front desk answered, in full view.
+          <span className="pill bg-panel2 text-muted">AI front desk for small business</span>
+          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[3.4rem]">
+            Enterprise-grade customer experience,{' '}
+            <span className="text-amber">on every call.</span>
           </h1>
-          <p className="mt-4 max-w-xl text-lg text-muted">
-            Choose a business to see its filled calendar, who reached out, and what every conversation was about — all on one page.
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
+            SkipDesk helps small businesses deliver enterprise-grade customer experiences — making sure every customer is{' '}
+            <span className="font-medium text-ink">heard, assisted, and guided</span> instantly, and turning conversations
+            into revenue opportunities.
           </p>
+
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Link href="/register" className="btn btn-primary">Onboard your business</Link>
+            <span className="text-sm text-faint">Get a live AI front desk number in minutes — no setup call.</span>
+          </div>
+
+          <div className="mt-10 grid gap-3 sm:grid-cols-3">
+            {PILLARS.map((p) => (
+              <div key={p.title} className="card p-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: p.dot }} />
+                  <span className="text-sm font-semibold text-ink">{p.title}</span>
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{p.body}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="mt-14 pb-20">

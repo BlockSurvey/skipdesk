@@ -24,8 +24,15 @@ type RegisterBody = {
   escalation?: { name?: string; role?: string; phone?: string; email?: string }
 }
 
+// Full CORS set — the register form is fetched cross-origin from the Next app,
+// and a JSON POST triggers a preflight that must allow the method + Content-Type.
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'Content-Type',
+}
 const json = (data: unknown, status = 200) =>
-  Response.json(data, { status, headers: { 'access-control-allow-origin': '*' } })
+  Response.json(data, { status, headers: CORS })
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60)
@@ -38,6 +45,8 @@ function newApiKey(): string {
 }
 
 export async function handleRegister(request: Request, env: Env, origin: string): Promise<Response> {
+  // CORS preflight — must succeed (with the CORS headers) before the browser sends the POST.
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
   if (request.method !== 'POST') {
     return json({ error: 'POST a JSON body: { name, timezone, slug?, locale?, escalation? }' }, 405)
   }

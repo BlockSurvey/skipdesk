@@ -10,7 +10,21 @@ const tip = {
   itemStyle: { color: '#1c1c1e' },
 }
 
+/** Shared empty-state placeholder so a data-less card reads as "waiting", not "broken". */
+function ChartEmpty({ label, height = 120 }: { label: string; height?: number }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 text-center" style={{ height }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--line-strong)" strokeWidth="1.5">
+        <path d="M3 3v18h18" strokeLinecap="round" />
+        <path d="M7 14l3.5-4 3 3L18 8" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" />
+      </svg>
+      <span className="text-xs text-faint">{label}</span>
+    </div>
+  )
+}
+
 export function CallsTrend({ data }: { data: DayPoint[] }) {
+  if (!data.reduce((s, d) => s + d.count + (d.booked ?? 0), 0)) return <ChartEmpty label="No call activity yet" height={150} />
   return (
     <ResponsiveContainer width="100%" height={150}>
       <AreaChart data={data} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
@@ -31,6 +45,7 @@ export function CallsTrend({ data }: { data: DayPoint[] }) {
 
 export function OutcomeDonut({ data }: { data: Tally[] }) {
   const total = data.reduce((s, d) => s + d.count, 0)
+  if (!total) return <ChartEmpty label="No outcomes recorded yet" />
   return (
     <div className="flex items-center gap-4">
       <ResponsiveContainer width={120} height={120}>
@@ -62,7 +77,7 @@ export function SentimentSplit({ data }: { data: Tally[] }) {
   const sorted = order.map((k) => data.find((d) => d.key === k) ?? { key: k, count: 0 })
   return (
     <div className="space-y-3">
-      <div className="flex h-2.5 overflow-hidden rounded-full">
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-line">
         {sorted.map((d) => (
           <div key={d.key} style={{ width: `${(d.count / Math.max(total, 1)) * 100}%`, background: SENTIMENT_COLOR[d.key] }} />
         ))}
