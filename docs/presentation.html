@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SkipDesk — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Grotesk:wght@700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --brand:#e8462b;       /* coral */
+    --brand-2:#ff7a4d;
+    --brand-deep:#d4381d;
+    --ink:#171311;         /* near-black warm */
+    --ink-soft:#2a2320;
+    --bg:#fbf6f1;          /* warm cream */
+    --panel:#ffffff;
+    --line:#ece3da;
+    --muted:#7a6f67;
+    --teal:#0fb5a0;
+    --amber:#f5a623;
+    --steel:#6b7c93;
+    --cream:#fff7ef;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Hanken Grotesk',system-ui,sans-serif;
+    background:var(--ink);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* ── Deck shell ── */
+  .deck{position:fixed;inset:0;}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(2rem,6vw,6rem);
+    opacity:0;visibility:hidden;
+    transform:translateY(24px) scale(.985);
+    transition:opacity .5s ease, transform .6s cubic-bezier(.22,1,.36,1), visibility .5s;
+    overflow:hidden;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none;}
+  .slide.active .rise{animation:rise .7s cubic-bezier(.22,1,.36,1) both}
+  .slide.active .rise:nth-child(2){animation-delay:.06s}
+  .slide.active .rise:nth-child(3){animation-delay:.12s}
+  .slide.active .rise:nth-child(4){animation-delay:.18s}
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+  /* light vs dark slides */
+  .slide.light{background:var(--bg);color:var(--ink)}
+  .slide.dark{background:var(--ink);color:#fff}
+  .slide.coral{background:var(--brand);color:#fff}
+
+  /* decorative atmosphere */
+  .grain{position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
+    background-image:radial-gradient(rgba(0,0,0,.04) 1px,transparent 1px);background-size:4px 4px}
+  .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;pointer-events:none}
+
+  /* eyebrow / kicker */
+  .kicker{display:inline-flex;align-items:center;gap:.55rem;font-size:.78rem;font-weight:600;
+    letter-spacing:.14em;text-transform:uppercase;padding:.4rem .85rem;border-radius:999px;
+    border:1px solid currentColor;opacity:.9}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor}
+
+  h1{font-weight:800;letter-spacing:-.035em;line-height:.98}
+  h2{font-weight:800;letter-spacing:-.03em;line-height:1.02;font-size:clamp(2rem,4.4vw,3.6rem)}
+  .lede{font-size:clamp(1.05rem,1.7vw,1.4rem);line-height:1.5;max-width:46ch}
+  .muted{color:var(--muted)}
+  .dark .muted,.coral .muted{color:rgba(255,255,255,.72)}
+  .accent{color:var(--brand)}
+  .dark .accent{color:var(--brand-2)}
+
+  /* big ghost slide index */
+  .ghost{position:absolute;right:2.5vw;top:-2vw;font-weight:800;line-height:1;
+    font-size:26vw;letter-spacing:-.05em;pointer-events:none;user-select:none}
+  .light .ghost{color:rgba(23,19,17,.035)}
+  .dark .ghost{color:rgba(255,255,255,.04)}
+  .coral .ghost{color:rgba(255,255,255,.08)}
+
+  /* grids & cards */
+  .grid{display:grid;gap:1rem}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.cols-2,.cols-3,.cols-4{grid-template-columns:1fr}}
+
+  .card{border-radius:20px;padding:clamp(1.1rem,1.8vw,1.6rem);position:relative;overflow:hidden}
+  .light .card{background:var(--panel);border:1px solid var(--line);box-shadow:0 12px 30px -18px rgba(23,19,17,.25)}
+  .dark .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}
+  .card .idx{position:absolute;right:-.4rem;top:-1rem;font-weight:800;font-size:5.5rem;line-height:1;
+    color:rgba(23,19,17,.05)}
+  .dark .card .idx{color:rgba(255,255,255,.06)}
+  .card h3{font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
+  .card p{margin-top:.55rem;line-height:1.5;font-size:.97rem}
+
+  .chip{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.45rem .9rem;
+    font-size:.85rem;font-weight:600;border:1px solid var(--line);background:var(--panel)}
+  .dark .chip{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:#fff}
+  .chip .d{width:7px;height:7px;border-radius:50%}
+
+  /* stat tiles */
+  .stat{border-radius:20px;padding:1.4rem 1.3rem;color:#fff;position:relative;overflow:hidden}
+  .stat .big{font-size:clamp(1.8rem,3.4vw,2.8rem);font-weight:800;letter-spacing:-.02em}
+  .stat .small{margin-top:.4rem;font-size:.9rem;color:rgba(255,255,255,.8)}
+
+  /* pillar dot badge */
+  .pdot{display:inline-flex;width:42px;height:42px;border-radius:13px;align-items:center;justify-content:center}
+  .pdot span{width:11px;height:11px;border-radius:50%}
+
+  /* code / architecture block */
+  pre.arch{font-family:'JetBrains Mono',monospace;font-size:clamp(.6rem,1vw,.86rem);line-height:1.55;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:16px;
+    padding:1.2rem 1.4rem;color:rgba(255,255,255,.9);overflow:auto;white-space:pre}
+
+  ul.tick{list-style:none;display:grid;gap:.7rem}
+  ul.tick li{position:relative;padding-left:1.7rem;line-height:1.45;font-size:1rem}
+  ul.tick li::before{content:"";position:absolute;left:0;top:.5em;width:8px;height:8px;border-radius:50%;
+    background:var(--brand)}
+  .dark ul.tick li::before{background:var(--brand-2)}
+
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(1.5rem,4vw,3.5rem);align-items:center}
+  @media (max-width:900px){.two{grid-template-columns:1fr}}
+
+  /* ── Chrome: progress, counter, controls ── */
+  .progress{position:fixed;left:0;top:0;height:3px;background:var(--brand);z-index:50;
+    transition:width .4s cubic-bezier(.22,1,.36,1);box-shadow:0 0 12px var(--brand)}
+  .counter{position:fixed;right:1.4rem;bottom:1.2rem;z-index:50;font-size:.8rem;font-weight:600;
+    background:rgba(0,0,0,.35);color:#fff;padding:.35rem .8rem;border-radius:999px;backdrop-filter:blur(8px)}
+  .hint{position:fixed;left:1.4rem;bottom:1.2rem;z-index:50;font-size:.74rem;color:rgba(255,255,255,.6)}
+  .light ~ .hint{color:rgba(0,0,0,.4)}
+  .nav{position:fixed;right:1.4rem;top:1.2rem;z-index:50;display:flex;gap:.5rem}
+  .nav button{all:unset;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;
+    background:rgba(0,0,0,.3);color:#fff;backdrop-filter:blur(8px);transition:background .2s}
+  .nav button:hover{background:var(--brand)}
+  .dots{position:fixed;left:50%;bottom:1.15rem;transform:translateX(-50%);z-index:50;display:flex;gap:.5rem}
+  .dots b{width:8px;height:8px;border-radius:50%;background:rgba(127,127,127,.4);cursor:pointer;transition:.25s}
+  .dots b.on{background:var(--brand);width:22px;border-radius:5px}
+
+  /* official lockup — single knob for the logo size */
+  .lockup{height:46px;width:auto;display:block}
+  .links{font-size:.82rem}
+  .links a{color:inherit}
+
+  @media print{
+    @page{size:1280px 720px;margin:0}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    html,body{overflow:visible;background:#fff;height:auto}
+    .deck{position:static;inset:auto;height:auto}
+    .slide{position:relative;inset:auto;opacity:1!important;visibility:visible!important;transform:none!important;
+      page-break-after:always;break-after:page;width:1280px;height:720px}
+    .slide:last-child{page-break-after:auto;break-after:auto}
+    .slide .rise{animation:none!important}
+    /* keep multi-column layouts intact — print viewport can be narrower than the page,
+       which would otherwise trigger the responsive single-column fallbacks and overflow */
+    .cols-2{grid-template-columns:repeat(2,1fr)!important}
+    .cols-3{grid-template-columns:repeat(3,1fr)!important}
+    .cols-4{grid-template-columns:repeat(4,1fr)!important}
+    .two{grid-template-columns:1.05fr .95fr!important}
+    .progress,.counter,.hint,.nav,.dots{display:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="bar"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ───────── COVER ───────── -->
+  <section class="slide coral active">
+    <span class="blob" style="width:46%;height:70%;right:-8%;top:-18%;background:#ff7a4d"></span>
+    <span class="blob" style="width:34%;height:54%;left:-6%;bottom:-22%;background:#d4381d"></span>
+    <div class="ghost">01</div>
+    <div class="rise" style="position:relative">
+      <!-- Official SkipDesk lockup (assets/logo/skipdesk-lockup-*.svg): waveform mark +
+           wordmark in Space Grotesk. Coloured for the coral cover (white mark + white
+           "Skip" + ink "Desk"). Size via the .lockup height below. -->
+      <svg class="lockup" viewBox="-14 -14 574.5 139" role="img" aria-label="SkipDesk">
+        <g fill="#FFFFFF">
+          <rect x="2.5"  y="39" width="9" height="32"  rx="4.5"/>
+          <rect x="18.5" y="28" width="9" height="54"  rx="4.5"/>
+          <rect x="34.5" y="15" width="9" height="80"  rx="4.5"/>
+          <rect x="50.5" y="5"  width="9" height="100" rx="4.5"/>
+          <rect x="66.5" y="15" width="9" height="80"  rx="4.5"/>
+          <rect x="82.5" y="28" width="9" height="54"  rx="4.5"/>
+          <rect x="98.5" y="39" width="9" height="32"  rx="4.5"/>
+        </g>
+        <text x="134" y="91" font-family="'Space Grotesk',sans-serif" font-weight="700" font-size="100" letter-spacing="-3.5">
+          <tspan fill="#FFFFFF">Skip</tspan><tspan fill="#171311">Desk</tspan>
+        </text>
+      </svg>
+    </div>
+    <div style="position:relative;margin-top:auto">
+      <span class="rise kicker" style="border-color:rgba(255,255,255,.6)"><span class="dot"></span>AI front desk for small business</span>
+      <h1 class="rise" style="margin-top:1.2rem;font-size:clamp(2.8rem,7vw,6rem);color:#fff;text-shadow:0 2px 30px rgba(120,24,4,.25)">
+        Answer Every Call.<br><span style="color:var(--ink);text-shadow:none">Capture Every Opportunity.</span>
+      </h1>
+      <p class="rise lede" style="margin-top:1.4rem;color:rgba(255,255,255,.92);max-width:54ch">
+        An AI-powered front desk that ensures every customer is
+        <b>heard, assisted, and guided</b> — instantly — turning conversations into revenue.
+      </p>
+    </div>
+    <div class="rise links mono" style="position:relative;margin-top:2.2rem;color:rgba(255,255,255,.85);display:flex;gap:1.5rem;flex-wrap:wrap">
+      <span>🔗 skipdesk-gamma.vercel.app</span>
+      <span>🛰️ skip-desk-mcp.workers.dev</span>
+    </div>
+  </section>
+
+  <!-- ───────── 1 · PROBLEM ───────── -->
+  <section class="slide light">
+    <span class="blob" style="width:30%;height:46%;right:-4%;top:-10%;background:#f5a62333"></span>
+    <div class="ghost">02</div>
+    <div class="two" style="position:relative">
+      <div>
+        <span class="rise kicker accent"><span class="dot"></span>Problem &amp; who's affected</span>
+        <h2 class="rise" style="margin-top:1.1rem">A missed call is a <span class="accent">missed customer.</span></h2>
+        <p class="rise lede muted" style="margin-top:1.2rem">
+          Small service teams can't answer every call — they're with a customer, it's after hours, or the line's busy.
+          Those callers don't leave voicemail. <b style="color:var(--ink)">They call the next business.</b>
+        </p>
+        <ul class="rise tick" style="margin-top:1.4rem">
+          <li>Hiring a receptionist is expensive.</li>
+          <li>Voicemail &amp; IVR menus frustrate callers and capture <b>nothing useful</b>.</li>
+          <li>Every unanswered call is a booking handed to a competitor.</li>
+        </ul>
+      </div>
+      <div class="rise">
+        <div class="muted" style="font-size:.8rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.8rem">Who's affected</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+          <span class="chip"><span class="d" style="background:var(--brand)"></span>Dental &amp; orthodontics</span>
+          <span class="chip"><span class="d" style="background:var(--teal)"></span>Aesthetics &amp; skin clinics</span>
+          <span class="chip"><span class="d" style="background:var(--amber)"></span>Salons &amp; barbershops</span>
+          <span class="chip"><span class="d" style="background:var(--steel)"></span>Spas &amp; wellness</span>
+          <span class="chip"><span class="d" style="background:var(--brand)"></span>Physio &amp; chiro</span>
+          <span class="chip"><span class="d" style="background:var(--teal)"></span>Fitness &amp; yoga</span>
+          <span class="chip"><span class="d" style="background:var(--amber)"></span>Veterinary</span>
+          <span class="chip"><span class="d" style="background:var(--steel)"></span>Home &amp; auto services</span>
+          <span class="chip"><span class="d" style="background:var(--brand)"></span>Professional services</span>
+        </div>
+        <p class="muted" style="margin-top:1rem;font-size:.92rem">Anyone phone- and appointment-led — where a ringing phone is lost revenue.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 2 · INSIGHT ───────── -->
+  <section class="slide dark">
+    <span class="blob" style="width:34%;height:52%;left:-8%;top:-14%;background:#e8462b55"></span>
+    <span class="blob" style="width:26%;height:40%;right:-4%;bottom:-16%;background:#0fb5a044"></span>
+    <div class="ghost">03</div>
+    <div style="position:relative">
+      <span class="rise kicker accent"><span class="dot"></span>Our insight — why now / why us</span>
+      <h2 class="rise" style="margin-top:1.1rem;max-width:18ch">Voice AI is finally good enough to <span class="accent">be</span> the front desk.</h2>
+    </div>
+    <div class="grid cols-3 rise" style="position:relative;margin-top:2rem">
+      <div class="card">
+        <div class="idx">1</div>
+        <div class="pdot" style="background:#e8462b33"><span style="background:var(--brand-2);box-shadow:0 0 12px var(--brand-2)"></span></div>
+        <h3 style="margin-top:1rem">Why now</h3>
+        <p class="muted">Real-time voice (Vapi) + capable reasoning (Claude) + cheap edge compute (Cloudflare) make a 24/7 receptionist affordable for one-location businesses — a first.</p>
+      </div>
+      <div class="card">
+        <div class="idx">2</div>
+        <div class="pdot" style="background:#0fb5a033"><span style="background:var(--teal);box-shadow:0 0 12px var(--teal)"></span></div>
+        <h3 style="margin-top:1rem">The insight</h3>
+        <p class="muted">The hard part isn't the voice — it's the <b style="color:#fff">backend that makes the conversation trustworthy</b>: real availability, no double-booking, clean isolated data, nothing lost.</p>
+      </div>
+      <div class="card">
+        <div class="idx">3</div>
+        <div class="pdot" style="background:#f5a62333"><span style="background:var(--amber);box-shadow:0 0 12px var(--amber)"></span></div>
+        <h3 style="margin-top:1rem">Why us</h3>
+        <p class="muted">We ship the backend + dashboard the agent calls into — strict multi-tenancy, dedup-by-phone identity, and a knowledge base — so it's grounded in each business's own truth.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 3 · SOLUTION DEMO ───────── -->
+  <section class="slide light">
+    <span class="blob" style="width:28%;height:44%;right:-4%;bottom:-14%;background:#0fb5a022"></span>
+    <div class="ghost">04</div>
+    <div style="position:relative">
+      <span class="rise kicker accent"><span class="dot"></span>Solution demo — screens &amp; flow</span>
+      <h2 class="rise" style="margin-top:1.1rem">One number that answers like your <span class="accent">best receptionist.</span></h2>
+    </div>
+    <div class="grid cols-3 rise" style="position:relative;margin-top:1.8rem">
+      <div class="card">
+        <div class="pdot" style="background:#f5a62322"><span style="background:var(--amber)"></span></div>
+        <h3 style="margin-top:.9rem">Heard</h3>
+        <p class="muted">Answered instantly, 24/7 — no voicemail, no hold music, no missed customer.</p>
+      </div>
+      <div class="card">
+        <div class="pdot" style="background:#0fb5a022"><span style="background:var(--teal)"></span></div>
+        <h3 style="margin-top:.9rem">Assisted</h3>
+        <p class="muted">Answers from the business's FAQs/docs; books, reschedules &amp; cancels against <b style="color:var(--ink)">live</b> availability — read back to confirm.</p>
+      </div>
+      <div class="card">
+        <div class="pdot" style="background:#6b7c9322"><span style="background:var(--steel)"></span></div>
+        <h3 style="margin-top:.9rem">Guided</h3>
+        <p class="muted">When it can't close, it captures intent as a <b style="color:var(--ink)">lead</b> and escalates to staff — so nothing slips.</p>
+      </div>
+    </div>
+    <div class="rise" style="position:relative;margin-top:1.6rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;font-weight:600">
+      <span class="chip"><span class="d" style="background:var(--brand)"></span>Sign up</span>
+      <span class="muted">→</span>
+      <span class="chip"><span class="d" style="background:var(--brand)"></span>3-step onboarding</span>
+      <span class="muted">→</span>
+      <span class="chip"><span class="d" style="background:var(--brand)"></span>Point a number / embed the widget</span>
+      <span class="muted">→</span>
+      <span class="chip" style="background:var(--ink);color:#fff;border-color:var(--ink)"><span class="d" style="background:var(--teal)"></span>Live in minutes</span>
+    </div>
+    <p class="rise muted" style="position:relative;margin-top:1.1rem;font-size:.95rem">
+      Owner dashboard: real-time calls with <b style="color:var(--ink)">AI summaries</b> · booking calendar · captured leads · KPIs &amp; charts.
+      <i>Try the live agent on the landing page — no signup needed.</i>
+    </p>
+  </section>
+
+  <!-- ───────── 4 · TECH APPROACH ───────── -->
+  <section class="slide dark">
+    <span class="blob" style="width:30%;height:46%;right:-6%;top:-12%;background:#e8462b44"></span>
+    <div class="ghost">05</div>
+    <div style="position:relative">
+      <span class="rise kicker accent"><span class="dot"></span>Tech approach — models, data, architecture</span>
+      <h2 class="rise" style="margin-top:1.1rem">Edge-native. Multi-tenant. <span class="accent">One data layer.</span></h2>
+    </div>
+    <div class="two rise" style="position:relative;margin-top:1.6rem;align-items:start">
+      <ul class="tick">
+        <li><b style="color:#fff">Models:</b> <b style="color:#fff">Vapi</b> for real-time voice (shared assistant, multi-tenant at the edges); <b style="color:#fff">Claude</b> for reasoning &amp; tool use; <b style="color:#fff">Workers AI</b> (<span class="mono">bge-base-en-v1.5</span>) for embeddings + doc conversion.</li>
+        <li><b style="color:#fff">Data:</b> Cloudflare <b style="color:#fff">D1</b> (SQLite/Drizzle, one source-of-truth schema); <b style="color:#fff">R2</b> for doc blobs; knowledge-base <b style="color:#fff">RAG</b> grounds answers in the business's own content.</li>
+        <li><b style="color:#fff">Interface:</b> an <b style="color:#fff">MCP server</b> (16 tools) <i>and</i> REST — both call the <i>identical</i> tenant-scoped queries. No duplicated logic.</li>
+        <li><b style="color:#fff">Tenancy:</b> every query scoped by <span class="mono">business_id</span> from the <b style="color:#fff">authenticated principal</b> — never caller input. No cross-tenant read path.</li>
+        <li><b style="color:#fff">Auth:</b> PBKDF2 passwords + stateless <b style="color:#fff">ES256 JWT</b> (worker signs, UI verifies locally).</li>
+      </ul>
+      <pre class="arch">Caller ─► Vapi ─┐         Browser ─► Web widget ─┐
+                │ mid-call MCP / webhook         │
+                ▼                                ▼
+   Cloudflare Worker  (MCP + REST)
+        │  resolve business_id → tenant-scoped
+        ▼
+   Drizzle data layer
+        ├─► D1   (SQLite)
+        ├─► R2   (doc blobs)
+        └─► Workers AI (RAG)
+        ▲
+   Owner ─► Next.js dashboard (session-gated)</pre>
+    </div>
+  </section>
+
+  <!-- ───────── 5 · VALUE & GTM ───────── -->
+  <section class="slide light">
+    <span class="blob" style="width:30%;height:46%;left:-6%;bottom:-16%;background:#f5a62322"></span>
+    <div class="ghost">06</div>
+    <div style="position:relative">
+      <span class="rise kicker accent"><span class="dot"></span>Value &amp; GTM — who pays, how we reach them</span>
+      <h2 class="rise" style="margin-top:1.1rem">Cheaper than a receptionist. <span class="accent">Paid back by one booking.</span></h2>
+    </div>
+    <div class="grid cols-4 rise" style="position:relative;margin-top:1.6rem">
+      <div class="stat" style="background:var(--brand)"><div class="big">24/7</div><div class="small">always answering</div></div>
+      <div class="stat" style="background:var(--teal)"><div class="big">0</div><div class="small">calls to voicemail</div></div>
+      <div class="stat" style="background:var(--ink)"><div class="big">&lt; 1 min</div><div class="small">to set up</div></div>
+      <div class="stat" style="background:var(--steel)"><div class="big">1 number</div><div class="small">for the whole front desk</div></div>
+    </div>
+    <div class="two rise" style="position:relative;margin-top:1.6rem;align-items:start">
+      <div>
+        <div class="muted" style="font-size:.8rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase">Who pays</div>
+        <p class="lede" style="margin-top:.6rem">The business owner — a <b>per-location SaaS</b> subscription, priced far below a part-time receptionist and justified by a single recovered booking.</p>
+      </div>
+      <div>
+        <div class="muted" style="font-size:.8rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase">Go-to-market</div>
+        <ul class="tick" style="margin-top:.6rem">
+          <li><b>Self-serve</b> — sign up, onboard, embed; no sales call, no card. Try-before-you-buy live demo.</li>
+          <li><b>Vertical wedge</b> — start where calls = bookings = money: clinics &amp; salons, then expand.</li>
+          <li><b>Land &amp; expand</b> — single location → chains/franchises; partner with booking tools.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 6 · NEXT STEPS ───────── -->
+  <section class="slide dark">
+    <span class="blob" style="width:32%;height:48%;right:-6%;top:-12%;background:#0fb5a044"></span>
+    <span class="blob" style="width:26%;height:40%;left:-6%;bottom:-18%;background:#e8462b44"></span>
+    <div class="ghost">07</div>
+    <div style="position:relative">
+      <span class="rise kicker accent"><span class="dot"></span>Next steps — roadmap &amp; risks</span>
+      <h2 class="rise" style="margin-top:1.1rem">Shipped &amp; working — <span class="accent">scaling next.</span></h2>
+    </div>
+    <div class="two rise" style="position:relative;margin-top:1.6rem;align-items:start">
+      <div class="card">
+        <h3>Roadmap</h3>
+        <ul class="tick" style="margin-top:.9rem">
+          <li>Per-<span class="mono">phone_number → business</span> routing for the shared inbound line.</li>
+          <li>Live Google Calendar sync (schema slot reserved).</li>
+          <li>Per-business assistants + live KB RAG injection.</li>
+          <li>Scale-outs: Vectorize, ingest Queue, teams, billing, rate-limiting.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Risks &amp; mitigations</h3>
+        <ul class="tick" style="margin-top:.9rem">
+          <li><b style="color:#fff">Voice latency</b> → proven real-time platform; agent reads details back.</li>
+          <li><b style="color:#fff">Hallucination</b> → grounded in the KB + structured tools; escalates rather than guesses.</li>
+          <li><b style="color:#fff">Data isolation</b> → app-layer tenancy on every query; principal-derived <span class="mono">business_id</span>.</li>
+          <li><b style="color:#fff">Adoption</b> → sub-minute onboarding + no-signup live demo.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="rise" style="position:relative;margin-top:1.8rem;font-size:1.15rem;font-weight:700">
+      SkipDesk — <span class="accent">stop letting the phone cost you customers.</span>
+    </p>
+  </section>
+
+</div>
+
+<!-- chrome -->
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">‹</button>
+  <button id="next" aria-label="Next slide">›</button>
+</div>
+<div class="dots" id="dots"></div>
+<div class="counter mono" id="counter">01 / 07</div>
+<div class="hint">← → / Space to navigate · F fullscreen</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const bar = document.getElementById('bar');
+  const counter = document.getElementById('counter');
+  const dotsWrap = document.getElementById('dots');
+  let i = 0;
+
+  // build dots
+  slides.forEach((_, n) => {
+    const b = document.createElement('b');
+    b.addEventListener('click', () => go(n));
+    dotsWrap.appendChild(b);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  function pad(n){return String(n).padStart(2,'0')}
+
+  function go(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    dots.forEach((d, k) => d.classList.toggle('on', k === i));
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    location.hash = i; // shareable / restorable
+  }
+
+  function next(){ go(i + 1) }
+  function prev(){ go(i - 1) }
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown'){ e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); prev(); }
+    else if (e.key === 'Home'){ go(0); }
+    else if (e.key === 'End'){ go(slides.length - 1); }
+    else if (e.key.toLowerCase() === 'f'){
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+
+  // click left/right third of screen to navigate (skip when clicking controls/links)
+  document.getElementById('deck').addEventListener('click', e => {
+    if (e.target.closest('a,button')) return;
+    (e.clientX < window.innerWidth * 0.32 ? prev : next)();
+  });
+
+  // swipe
+  let sx = 0;
+  addEventListener('touchstart', e => sx = e.touches[0].clientX, {passive:true});
+  addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 50) (dx < 0 ? next : prev)();
+  }, {passive:true});
+
+  go(parseInt(location.hash.slice(1)) || 0);
+</script>
+</body>
+</html>
